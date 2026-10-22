@@ -18,14 +18,16 @@ jobs:
           # Создаем структуру папок для иконки
           mkdir -p src/common
           
-          # Используем встроенный Python на сервере, чтобы создать синий квадрат 192x192 с белой цифрой 15
+          # Устанавливаем библиотеку для работы с изображениями
+          pip install Pillow
+          
+          # Запускаем скрипт генерации синего квадрата 192x192 с белой цифрой 15
           python3 -c "
           from PIL import Image, ImageDraw, ImageFont
-          # Создаем синее полотно (цвет #007AFF)
           img = Image.new('RGBA', (192, 192), (0, 122, 255, 255))
           draw = ImageDraw.Draw(img)
           
-          # Округляем углы нашей иконки, чтобы она красиво смотрелась в меню Mi Band
+          # Округляем углы
           mask = Image.new('L', (192, 192), 0)
           mask_draw = ImageDraw.Draw(mask)
           mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=40, fill=255)
@@ -37,11 +39,10 @@ jobs:
           except:
               font = None
               
-          # Отрисовка цифры по центру стандартными средствами
           draw.text((96, 96), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=80)
           img.save('src/common/logo.png')
           "
-          echo "Иконка '15' успешно сгенерирована внутри проекта!"
+          echo "Иконка '15' успешно сгенерирована!"
 
       - name: Install and Build
         run: |
