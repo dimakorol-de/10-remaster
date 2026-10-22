@@ -75,7 +75,6 @@
       this.loadSettings();
       this.shuffle();
     },
-    // Проверка математической решаемости (инвариант четности)
     isSolvable(arr) {
       let inversions = 0;
       for (let i = 0; i < arr.length - 1; i++) {
