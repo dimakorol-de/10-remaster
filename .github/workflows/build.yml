@@ -12,12 +12,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          
+      - name: Download Placeholder Icon
+        run: |
+          # Создаем нужную папку и скачиваем туда готовую картинку-заглушку
+          mkdir -p src/common
+          curl -sL https://githubusercontent.com -o src/common/logo.png || curl -sL https://placehold.co -o src/common/logo.png
+          echo "Иконка-заглушка успешно добавлена в проект!"
+
       - name: Install and Build
         run: |
           npm install
           npx aiot build
           mkdir -p dist_output
           find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
+          
       - name: Upload RPK
         uses: actions/upload-artifact@v4
         with:
