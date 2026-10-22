@@ -17,16 +17,17 @@ jobs:
         run: |
           mkdir -p src/common
           curl -sL https://placehold.co -o src/common/logo.png
-          echo "Иконка успешно добавлена в проект!"
+          echo "Иконка добавлена!"
 
-      - name: Inject Separated Code (UX and JS)
+      - name: Inject 4x4 Fifteen Game Code
         run: |
           mkdir -p src/pages/index
           
-          # 1. Создаем интерфейс (UX разметка и стили)
+          # 1. Создаем интерфейс под сетку 4х4
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ bgColor }};">
+              <!-- ИГРОВОЕ ПОЛЕ 4х4 -->
               <div class="board">
                 <div for="{{gameMatrix}}" class="cell-wrapper">
                   <input 
@@ -39,6 +40,8 @@ jobs:
                   />
                 </div>
               </div>
+              
+              <!-- МЕНЮ НАСТРОЕК -->
               <div class="menu">
                 <text class="menu-title" style="color: {{ textColor }};">Настройки</text>
                 <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
@@ -46,6 +49,8 @@ jobs:
                 <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
                 <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
               </div>
+              
+              <!-- АВТОР -->
               <div class="credits">
                 <text class="credits-label">Создал</text>
                 <text class="credits-name">Александр Солдатов</text>
@@ -54,10 +59,11 @@ jobs:
           </template>
 
           <style>
-            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
-            .board { width: 180px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-            .cell-wrapper { width: 56px; height: 56px; margin: 2px; justify-content: center; align-items: center; }
-            .cell { width: 56px; height: 56px; border-radius: 8px; font-size: 22px; font-weight: bold; }
+            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 25px; padding-bottom: 30px; }
+            /* Адаптировано под 4 плитки в ряд: 43px * 4 + отступы = 184px */
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+            .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
+            .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; }
             .anim { transition: all 0.15s ease-in-out; }
             .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
             .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
@@ -70,14 +76,15 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 2. Выносим логику игры в отдельный стабильный JS файл
+          # 2. Логика игры с полем от 1 до 15
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
           export default {
             private: {
+              // Массив на 16 элементов (15 плиток + 0)
               gameMatrix:,
-              emptyIndex: 8,
+              emptyIndex: 15,
               isDark: true,
               tileStyle: 0,
               isAnim: true,
@@ -104,8 +111,9 @@ jobs:
               }
             },
             moveTile(index) {
-              const r1 = Math.floor(index / 3), c1 = index % 3;
-              const r2 = Math.floor(this.emptyIndex / 3), c2 = this.emptyIndex % 3;
+              // Проверка ходов теперь для сетки 4х4 (деление на 4)
+              const r1 = Math.floor(index / 4), c1 = index % 4;
+              const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
               if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
                 let newBoard = [];
                 for (let i = 0; i < this.gameMatrix.length; i++) { newBoard.push(this.gameMatrix[i]); }
@@ -133,7 +141,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); this.updateStyles(); }
           }
           EOF
-          echo "Код игры успешно разделен на UX и JS модули!"
+          echo "Полноценные Пятнашки 4х4 успешно созданы!"
 
       - name: Install and Build
         run: |
