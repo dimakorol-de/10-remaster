@@ -2,8 +2,8 @@ name: Build RPK
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '*.zip'
+    branches:
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,23 +12,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      
-      - name: Unpack and Build Vela Project
+      - name: Install and Build
         run: |
-          # Распаковываем чистый проект
-          unzip -o fifteen_remaster_v3.zip
-          
-          # Установка и компиляция
           npm install
           npx aiot build
-          
-          # Создаем чистую папку для готового файла
-          mkdir -p output_rpk
-          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} output_rpk/ \;
-          
+          mkdir -p dist_output
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
       - name: Upload RPK
         uses: actions/upload-artifact@v4
         with:
           name: rpk-build
-          path: output_rpk/*.rpk
+          path: dist_output/*.rpk
           if-no-files-found: error
