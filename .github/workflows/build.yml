@@ -15,11 +15,126 @@ jobs:
           
       - name: Download High-Quality Icon (Blue 15)
         run: |
-          # Автоматически создаем папку common и скачиваем туда готовую синюю иконку "15"
           mkdir -p src/common
           curl -sL "https://placehold.co" -o src/common/logo.png
-          echo "Иконка '15' успешно добавлена в проект!"
+          echo "Иконка добавлена!"
           
+      - name: Force Overwrite App Code (UX and JS)
+        run: |
+          mkdir -p src/pages/index
+          
+          # 1. Принудительно перезаписываем интерфейс игры 4х4
+          cat << 'EOF' > src/pages/index/index.ux
+          <template>
+            <div class="container" style="background-color: {{ bgColor }};">
+              <div class="board">
+                <div for="{{gameMatrix}}" class="cell-wrapper">
+                  <input 
+                    if="{{$item !== 0}}" 
+                    type="button" 
+                    class="cell {{animClass}}" 
+                    style="background-color: {{ tileColor }}; color: {{ textColor }};"
+                    value="{{$item}}" 
+                    onclick="moveTile($idx)"
+                  />
+                </div>
+              </div>
+              <div class="menu">
+                <text class="menu-title" style="color: {{ textColor }};">Настройки</text>
+                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
+                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
+                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+              </div>
+              <div class="credits">
+                <text class="credits-label">Создал</text>
+                <text class="credits-name">Александр Солдатов</text>
+              </div>
+            </div>
+          </template>
+
+          <style>
+            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+            .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
+            .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; }
+            .anim { transition: all 0.15s ease-in-out; }
+            .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
+            .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+            .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+            .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
+            .credits-label { font-size: 12px; color: #8E8E93; }
+            .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
+          </style>
+
+          <script src="./index.js"></script>
+          EOF
+
+          # 2. Принудительно перезаписываем чистую логику игры (без пустых массивов!)
+          cat << 'EOF' > src/pages/index/index.js
+          import vibrator from '@system.vibrator'
+          
+          export default {
+            private: {
+              gameMatrix:,
+              emptyIndex: 15,
+              isDark: true,
+              tileStyle: 0,
+              isAnim: true,
+              isVib: true,
+              bgColor: '#000000',
+              textColor: '#FFFFFF',
+              btnBgColor: '#222222',
+              tileColor: '#1C1C1E',
+              animClass: 'anim'
+            },
+            onCreate() {
+              this.shuffle();
+              this.updateStyles();
+            },
+            shuffle() {
+              let arr =;
+              for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+              }
+              this.gameMatrix = arr;
+              for (let i = 0; i < arr.length; i++) {
+                if (arr[i] === 0) { this.emptyIndex = i; break; }
+              }
+            },
+            moveTile(index) {
+              const r1 = Math.floor(index / 4), c1 = index % 4;
+              const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
+              if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+                let newBoard = [];
+                for (let i = 0; i < this.gameMatrix.length; i++) { newBoard.push(this.gameMatrix[i]); }
+                newBoard[this.emptyIndex] = newBoard[index]; newBoard[index] = 0;
+                this.gameMatrix = newBoard; this.emptyIndex = index;
+                this.triggerVibe();
+              }
+            },
+            triggerVibe() {
+              if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
+            },
+            updateStyles() {
+              if (this.isDark) {
+                this.bgColor = '#000000'; this.textColor = '#FFFFFF'; this.btnBgColor = '#222222';
+                this.tileColor = this.tileStyle === 0 ? '#1C1C1E' : '#007AFF';
+              } else {
+                this.bgColor = '#FFFFFF'; this.textColor = '#000000'; this.btnBgColor = '#E5E5EA';
+                this.tileColor = this.tileStyle === 0 ? '#D1D1D6' : '#34C759';
+              }
+              this.animClass = this.isAnim ? 'anim' : '';
+            },
+            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); this.updateStyles(); },
+            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); this.updateStyles(); },
+            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); this.updateStyles(); },
+            toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); this.updateStyles(); }
+          }
+          EOF
+          echo "Код игры принудительно обновлен!"
+
       - name: Install and Build (Release Mode)
         run: |
           npm install
