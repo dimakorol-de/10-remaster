@@ -19,15 +19,14 @@ jobs:
           curl -sL https://placehold.co -o src/common/logo.png
           echo "Иконка добавлена!"
 
-      - name: Inject 4x4 Fifteen Game Code
+      - name: Inject Separated Code (UX and JS)
         run: |
           mkdir -p src/pages/index
           
-          # 1. Создаем интерфейс под сетку 4х4
+          # 1. Создаем разметку интерфейса 4х4
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ bgColor }};">
-              <!-- ИГРОВОЕ ПОЛЕ 4х4 -->
               <div class="board">
                 <div for="{{gameMatrix}}" class="cell-wrapper">
                   <input 
@@ -40,8 +39,6 @@ jobs:
                   />
                 </div>
               </div>
-              
-              <!-- МЕНЮ НАСТРОЕК -->
               <div class="menu">
                 <text class="menu-title" style="color: {{ textColor }};">Настройки</text>
                 <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
@@ -49,8 +46,6 @@ jobs:
                 <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
                 <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
               </div>
-              
-              <!-- АВТОР -->
               <div class="credits">
                 <text class="credits-label">Создал</text>
                 <text class="credits-name">Александр Солдатов</text>
@@ -59,8 +54,7 @@ jobs:
           </template>
 
           <style>
-            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 25px; padding-bottom: 30px; }
-            /* Адаптировано под 4 плитки в ряд: 43px * 4 + отступы = 184px */
+            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
             .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
             .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; }
@@ -76,14 +70,13 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 2. Логика игры с полем от 1 до 15
+          # 2. Выносим логику игры 4х4 с числами от 1 до 15
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
           export default {
             private: {
-              // Массив на 16 элементов (15 плиток + 0)
-              gameMatrix:,
+              gameMatrix: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0],
               emptyIndex: 15,
               isDark: true,
               tileStyle: 0,
@@ -100,7 +93,7 @@ jobs:
               this.updateStyles();
             },
             shuffle() {
-              let arr =;
+              let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0];
               for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
@@ -111,7 +104,6 @@ jobs:
               }
             },
             moveTile(index) {
-              // Проверка ходов теперь для сетки 4х4 (деление на 4)
               const r1 = Math.floor(index / 4), c1 = index % 4;
               const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
               if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
@@ -141,14 +133,20 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); this.updateStyles(); }
           }
           EOF
-          echo "Полноценные Пятнашки 4х4 успешно созданы!"
+          echo "Код обновлен!"
 
-      - name: Install and Build
+      - name: Install and Build (Release Mode)
         run: |
           npm install
-          npx aiot build
+          
+          # Автоматически генерируем временные ключи релиза, чтобы обойти ошибку подписи!
+          npx aiot keys || true
+          
+          # Запускаем чистый релизный билд
+          npx aiot release
+          
           mkdir -p dist_output
-          find . -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
           
       - name: Upload RPK
         uses: actions/upload-artifact@v4
