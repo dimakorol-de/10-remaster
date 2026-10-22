@@ -1,34 +1,3 @@
-name: Build RPK
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          
-      - name: Generate Icon (Blue 15)
-        run: |
-          mkdir -p src/common
-          pip install Pillow
-          python3 -c "
-          from PIL import Image, ImageDraw, ImageFont
-          img = Image.new('RGBA', (192, 192), (0, 122, 255, 255))
-          draw = ImageDraw.Draw(img)
-          mask = Image.new('L', (192, 192), 0)
-          mask_draw = ImageDraw.Draw(mask)
-          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=40, fill=255)
-          img.putalpha(mask)
-          draw.text((96, 96), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=80)
-          img.save('src/common/logo.png')
-          "
-
       - name: Inject Perfect Game Code
         run: |
           mkdir -p src/pages/index
@@ -77,7 +46,7 @@ jobs:
             import vibrator from '@system.vibrator'
             export default {
               private: {
-                gameMatrix:,
+                gameMatrix: 0,
                 emptyIndex: 8,
                 isDark: true,
                 tileStyle: 0,
@@ -135,18 +104,4 @@ jobs:
             }
           </script>
           EOF
-          echo "Идеальный код игры принудительно внедрен в сборку!"
-
-      - name: Install and Build
-        run: |
-          npm install
-          npx aiot build
-          mkdir -p dist_output
-          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
-          
-      - name: Upload RPK
-        uses: actions/upload-artifact@v4
-        with:
-          name: rpk-build
-          path: dist_output/*.rpk
-          if-no-files-found: error
+          echo "Идеальный код игры успешно внедрен без массивов в private!"
