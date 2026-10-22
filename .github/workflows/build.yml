@@ -13,39 +13,83 @@ jobs:
         with:
           node-version: 20
           
-      - name: Download High-Quality Icon (Blue 15)
+      - name: Generate High-Quality Designer Icon
         run: |
           mkdir -p src/common
-          curl -sL "https://placehold.co" -o src/common/logo.png
-          echo "Иконка добавлена!"
-          
-      - name: Force Overwrite App Code (UX and JS)
+          pip install Pillow
+          python3 -c "
+          from PIL import Image, ImageDraw, ImageFont
+          img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
+          draw = ImageDraw.Draw(img)
+          mask = Image.new('L', (192, 192), 0)
+          mask_draw = ImageDraw.Draw(mask)
+          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
+          img.putalpha(mask)
+          draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
+          img.save('src/common/logo.png')
+          "
+          echo "Иконка готова!"
+
+      - name: Inject Safe App Code (UX and JS)
         run: |
           mkdir -p src/pages/index
           
-          # 1. Принудительно перезаписываем интерфейс игры 4х4
+          # 1. Манифест приложения
+          cat << 'EOF' > src/manifest.json
+          {
+            "package": "com.soldatov.fifteen.remaster",
+            "name": "Ремастер",
+            "versionName": "1.0.0",
+            "versionCode": 1,
+            "minPlatformVersion": 1000,
+            "icon": "/common/logo.png",
+            "deviceTypeList": ["band", "watch"],
+            "features": [
+              { "name": "system.router" },
+              { "name": "system.vibrator" }
+            ],
+            "config": {
+              "logLevel": "log",
+              "designWidth": 212
+            },
+            "router": {
+              "entry": "pages/index",
+              "pages": {
+                "pages/index": {
+                  "component": "index"
+                }
+              }
+            }
+          }
+          EOF
+
+          # 2. Безопасный интерфейс на чистых CSS классах
           cat << 'EOF' > src/pages/index/index.ux
           <template>
-            <div class="container" style="background-color: {{ bgColor }};">
+            <div class="container {{themeClass}}">
+              <!-- ИГРОВОЕ ПОЛЕ -->
               <div class="board">
                 <div for="{{gameMatrix}}" class="cell-wrapper">
                   <input 
                     if="{{$item !== 0}}" 
                     type="button" 
-                    class="cell {{animClass}}" 
-                    style="background-color: {{ tileColor }}; color: {{ textColor }};"
+                    class="cell {{animClass}} {{tileColorClass}}" 
                     value="{{$item}}" 
                     onclick="moveTile($idx)"
                   />
                 </div>
               </div>
+              
+              <!-- НАСТРОЙКИ -->
               <div class="menu">
-                <text class="menu-title" style="color: {{ textColor }};">Настройки</text>
-                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
-                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
-                <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+                <text class="menu-title">Настройки</text>
+                <input type="button" class="btn" value="Тема: {{isDark ? 'Темная' : 'Светлая'}}" onclick="toggleTheme" />
+                <input type="button" class="btn" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
+                <input type="button" class="btn" value="Анимация: {{isAnim ? 'ВКЛ' : 'ВЫКЛ'}}" onclick="toggleAnim" />
+                <input type="button" class="btn" value="Вибро: {{isVib ? 'ВКЛ' : 'ВЫКЛ'}}" onclick="toggleVib" />
               </div>
+              
+              <!-- АВТОР -->
               <div class="credits">
                 <text class="credits-label">Создал</text>
                 <text class="credits-name">Александр Солдатов</text>
@@ -54,6 +98,7 @@ jobs:
           </template>
 
           <style>
+            /* Базовые стили */
             .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
             .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
@@ -65,15 +110,28 @@ jobs:
             .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
             .credits-label { font-size: 12px; color: #8E8E93; }
             .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
+
+            /* Стили ТЕМНЫЙ режим */
+            .theme-dark { background-color: #000000; }
+            .theme-dark .menu-title { color: #FFFFFF; }
+            .theme-dark .btn { background-color: #222222; color: #FFFFFF; }
+            .theme-dark .tile-style0 { background-color: #1C1C1E; color: #FFFFFF; }
+            .theme-dark .tile-style1 { background-color: #007AFF; color: #FFFFFF; }
+
+            /* Стили СВЕТЛЫЙ режим */
+            .theme-light { background-color: #FFFFFF; }
+            .theme-light .menu-title { color: #000000; }
+            .theme-light .btn { background-color: #E5E5EA; color: #000000; }
+            .theme-light .tile-style0 { background-color: #D1D1D6; color: #000000; }
+            .theme-light .tile-style1 { background-color: #34C759; color: #000000; }
           </style>
 
           <script src="./index.js"></script>
           EOF
 
-          # 2. Принудительно перезаписываем чистую логику игры (без пустых массивов!)
+          # 3. Чистая логика переключения классов
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
-          
           export default {
             private: {
               gameMatrix:,
@@ -82,15 +140,13 @@ jobs:
               tileStyle: 0,
               isAnim: true,
               isVib: true,
-              bgColor: '#000000',
-              textColor: '#FFFFFF',
-              btnBgColor: '#222222',
-              tileColor: '#1C1C1E',
+              themeClass: 'theme-dark',
+              tileColorClass: 'tile-style0',
               animClass: 'anim'
             },
             onCreate() {
               this.shuffle();
-              this.updateStyles();
+              this.updateClasses();
             },
             shuffle() {
               let arr =;
@@ -117,25 +173,20 @@ jobs:
             triggerVibe() {
               if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
             },
-            updateStyles() {
-              if (this.isDark) {
-                this.bgColor = '#000000'; this.textColor = '#FFFFFF'; this.btnBgColor = '#222222';
-                this.tileColor = this.tileStyle === 0 ? '#1C1C1E' : '#007AFF';
-              } else {
-                this.bgColor = '#FFFFFF'; this.textColor = '#000000'; this.btnBgColor = '#E5E5EA';
-                this.tileColor = this.tileStyle === 0 ? '#D1D1D6' : '#34C759';
-              }
+            updateClasses() {
+              this.themeClass = this.isDark ? 'theme-dark' : 'theme-light';
+              this.tileColorClass = this.tileStyle === 0 ? 'tile-style0' : 'tile-style1';
               this.animClass = this.isAnim ? 'anim' : '';
             },
-            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); this.updateStyles(); },
-            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); this.updateStyles(); },
-            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); this.updateStyles(); },
-            toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); this.updateStyles(); }
+            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); this.updateClasses(); },
+            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); this.updateClasses(); },
+            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); this.updateClasses(); },
+            toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Код игры принудительно обновлен!"
+          echo "Код без динамических стилей успешно зашит!"
 
-      - name: Install and Build (Release Mode)
+      - name: Install and Build (True Release Sign Mode)
         run: |
           npm install
           mkdir -p sign/release
