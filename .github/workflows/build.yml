@@ -13,27 +13,60 @@ jobs:
         with:
           node-version: 20
           
-      - name: Generate Icon (Blue 15)
+      - name: Generate High-Quality Designer Icon
         run: |
           mkdir -p src/common
           pip install Pillow
           python3 -c "
           from PIL import Image, ImageDraw, ImageFont
-          img = Image.new('RGBA', (192, 192), (0, 122, 255, 255))
+          img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
           draw = ImageDraw.Draw(img)
+          
           mask = Image.new('L', (192, 192), 0)
           mask_draw = ImageDraw.Draw(mask)
-          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=40, fill=255)
+          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
           img.putalpha(mask)
-          draw.text((96, 96), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=80)
+          
+          draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
           img.save('src/common/logo.png')
           "
+          echo "Премиальная иконка '15' успешно создана!"
 
-      - name: Inject Game Code (UX and JS)
+      - name: Inject Game Code and Manifest
         run: |
           mkdir -p src/pages/index
           
-          # 1. Интерфейс игры 4х4
+          # 1. Записываем манифест с коротким названием «Ремастер»
+          cat << 'EOF' > src/manifest.json
+          {
+            "package": "com.soldatov.fifteen.remaster",
+            "name": "Ремастер",
+            "versionName": "1.0.0",
+            "versionCode": 1,
+            "minPlatformVersion": 1000,
+            "icon": "/common/logo.png",
+            "deviceTypeList": ["band", "watch"],
+            "features": [
+              { "name": "system.router" },
+              { "name": "system.storage" },
+              { "name": "system.vibrator" }
+            ],
+            "config": {
+              "logLevel": "log",
+              "designWidth": 212
+            },
+            "router": {
+              "entry": "pages/index",
+              "pages": {
+                "pages/index": {
+                  "component": "index"
+                }
+              }
+            }
+          }
+          EOF
+
+          # 2. Интерфейс игры 4х4
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ bgColor }};">
@@ -80,7 +113,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 2. Логика игры 4х4 (от 1 до 15)
+          # 3. Логика игры 4х4
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           export default {
@@ -143,16 +176,23 @@ jobs:
           }
           EOF
 
-      - name: Install and Build (Debug Auto-Key Mode)
+      - name: Install and Build (True Release Sign Mode)
         run: |
           npm install
-          npx aiot build
+          
+          # Создаем локальные сертификаты релиза
+          mkdir -p sign/release
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
+          
+          # Компилируем легальный релизный RPK
+          npx aiot release
+          
           mkdir -p dist_output
-          find . -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/fifteen_remaster.rpk \;
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
           
       - name: Upload RPK
         uses: actions/upload-artifact@v4
         with:
           name: rpk-build
-          path: dist_output/fifteen_remaster.rpk
+          path: dist_output/remaster.rpk
           if-no-files-found: error
