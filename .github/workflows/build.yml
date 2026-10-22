@@ -12,13 +12,44 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          
+      - name: Generate Icon (Blue 15)
+        run: |
+          # Создаем структуру папок для иконки
+          mkdir -p src/common
+          
+          # Используем встроенный Python на сервере, чтобы создать синий квадрат 192x192 с белой цифрой 15
+          python3 -c "
+          from PIL import Image, ImageDraw, ImageFont
+          # Создаем синее полотно (цвет #007AFF)
+          img = Image.new('RGBA', (192, 192), (0, 122, 255, 255))
+          draw = ImageDraw.Draw(img)
+          
+          # Округляем углы нашей иконки, чтобы она красиво смотрелась в меню Mi Band
+          mask = Image.new('L', (192, 192), 0)
+          mask_draw = ImageDraw.Draw(mask)
+          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=40, fill=255)
+          img.putalpha(mask)
+          
+          # Рисуем белую надпись '15' по центру
+          try:
+              font = ImageFont.load_default()
+          except:
+              font = None
+              
+          # Отрисовка цифры по центру стандартными средствами
+          draw.text((96, 96), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=80)
+          img.save('src/common/logo.png')
+          "
+          echo "Иконка '15' успешно сгенерирована внутри проекта!"
+
       - name: Install and Build
         run: |
           npm install
           npx aiot build
           mkdir -p dist_output
-          # Забираем только готовый файл rpk из папки dist
-          find dist/ -name "*.rpk" -exec cp {} dist_output/ \;
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
+          
       - name: Upload RPK
         uses: actions/upload-artifact@v4
         with:
