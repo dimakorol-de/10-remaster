@@ -1,0 +1,27 @@
+name: Build RPK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install and Build
+        run: |
+          npm install
+          npx aiot build
+          mkdir -p dist_output
+          # Забираем только готовый файл rpk из папки dist
+          find dist/ -name "*.rpk" -exec cp {} dist_output/ \;
+      - name: Upload RPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpk-build
+          path: dist_output/*.rpk
+          if-no-files-found: error
