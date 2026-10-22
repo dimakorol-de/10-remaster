@@ -17,13 +17,13 @@ jobs:
         run: |
           mkdir -p src/common
           curl -sL https://placehold.co -o src/common/logo.png
-          echo "Иконка добавлена!"
+          echo "Иконка успешно добавлена в проект!"
 
       - name: Inject Separated Code (UX and JS)
         run: |
           mkdir -p src/pages/index
           
-          # 1. Создаем интерфейс без встроенного JavaScript кода
+          # 1. Создаем интерфейс (UX разметка и стили)
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ bgColor }};">
@@ -70,7 +70,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 2. Выносим ВСЮ логику в отдельный JS файл для стабильности UxLoader
+          # 2. Выносим логику игры в отдельный стабильный JS файл
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
@@ -138,9 +138,9 @@ jobs:
       - name: Install and Build
         run: |
           npm install
-          npx aiot release
+          npx aiot build
           mkdir -p dist_output
-          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
+          find . -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/ \;
           
       - name: Upload RPK
         uses: actions/upload-artifact@v4
