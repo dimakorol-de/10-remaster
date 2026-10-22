@@ -1,0 +1,12 @@
+{
+  "name": "fifteen-remaster",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "aiot build",
+    "release": "aiot release"
+  },
+  "devDependencies": {
+    "aiot-toolkit": "latest"
+  }
+}
