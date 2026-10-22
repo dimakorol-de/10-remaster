@@ -1,26 +1,27 @@
 <template>
-  <div class="container" style="background-color: {{ bgColor }};">
+  <div class="container" style="background-color: {{ currentTheme.bg }};">
     <!-- ИГРОВОЕ ПОЛЕ -->
     <div class="board">
-      <div for="{{board}}" class="cell-wrapper">
+      <div for="{{(index, item) in board}}" class="cell-wrapper">
         <input 
-          if="{{$item !== 0}}" 
+          if="{{item !== 0}}" 
           type="button" 
-          class="cell {{animClass}}" 
-          style="background-color: {{ tileColor }}; color: {{ textColor }};"
-          value="{{$item}}" 
-          onclick="moveTile($idx)"
+          class="cell {{isAnimationEnabled ? 'anim' : ''}}" 
+          style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }};"
+          value="{{item}}" 
+          onclick="moveTile(index)"
         />
       </div>
     </div>
 
     <!-- МЕНЮ НАСТРОЕК -->
     <div class="menu">
-      <text class="menu-title" style="color: {{ textColor }};">Настройки</text>
-      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
-      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
-      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+      <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
+      
+      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
+      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnimationEnabled ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
+      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVibrateEnabled ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
     </div>
 
     <!-- АВТОР -->
@@ -35,17 +36,18 @@
   .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
   .board { width: 180px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
   .cell-wrapper { width: 56px; height: 56px; margin: 2px; justify-content: center; align-items: center; }
-  .cell { width: 56px; height: 56px; border-radius: 8px; font-size: 22px; font-weight: bold; }
+  .cell { width: 56px; height: 56px; border-radius: 8px; font-size: 22px; font-weight: bold; border-width: 0px; }
   .anim { transition: all 0.15s ease-in-out; }
   .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
   .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-  .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+  .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; border-width: 0px; }
   .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
   .credits-label { font-size: 12px; color: #8E8E93; }
   .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
 </style>
 
 <script>
+  import storage from '@system.storage'
   import vibrator from '@system.vibrator'
 
   export default {
@@ -54,45 +56,55 @@
       emptyIndex: 8,
       isDark: true,
       tileStyle: 0,
-      isAnim: true,
-      isVib: true,
-      bgColor: '#000000',
-      textColor: '#FFFFFF',
-      btnBgColor: '#222222',
-      tileColor: '#1C1C1E',
-      animClass: 'anim'
+      isAnimationEnabled: true,
+      isVibrateEnabled: true,
+      themes: {
+        dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
+        light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
+      },
+      tileColors: [
+        { dark: '#1C1C1E', light: '#D1D1D6' },
+        { dark: '#007AFF', light: '#34C759' }
+      ]
+    },
+    computed: {
+      currentTheme() { return this.isDark ? this.themes.dark : this.themes.light },
+      currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light'] }
     },
     onCreate() {
+      this.loadSettings();
       this.shuffle();
-      this.updateStyles();
+    },
+    // Проверка математической решаемости (инвариант четности)
+    isSolvable(arr) {
+      let inversions = 0;
+      for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+          if (arr[i] > 0 && arr[j] > 0 && arr[i] > arr[j]) {
+            inversions++;
+          }
+        }
+      }
+      return inversions % 2 === 0;
     },
     shuffle() {
-      let arr =;
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        let temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
-      }
-      this.board = arr;
-      for (let i = 0; i < arr.length; i++) {
-        if (arr[i] === 0) {
-          this.emptyIndex = i;
-          break;
+      let arr;
+      do {
+        arr =;
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
         }
-      }
+      } while (!this.isSolvable(arr) || arr.join(',') === '1,2,3,4,5,6,7,8,0');
+
+      this.board = arr;
+      this.emptyIndex = arr.indexOf(0);
     },
     moveTile(index) {
-      const r1 = Math.floor(index / 3);
-      const c1 = index % 3;
-      const r2 = Math.floor(this.emptyIndex / 3);
-      const c2 = this.emptyIndex % 3;
-      
+      const r1 = Math.floor(index / 3), c1 = index % 3;
+      const r2 = Math.floor(this.emptyIndex / 3), c2 = this.emptyIndex % 3;
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        let newBoard = [];
-        for (let i = 0; i < this.board.length; i++) {
-          newBoard.push(this.board[i]);
-        }
+        let newBoard = [...this.board];
         newBoard[this.emptyIndex] = newBoard[index];
         newBoard[index] = 0;
         this.board = newBoard;
@@ -101,43 +113,25 @@
       }
     },
     triggerVibe() {
-      if (this.isVib) {
+      if (this.isVibrateEnabled) {
         try { vibrator.vibrate({ mode: 'short' }); } catch(e){}
       }
     },
-    updateStyles() {
-      if (this.isDark) {
-        this.bgColor = '#000000';
-        this.textColor = '#FFFFFF';
-        this.btnBgColor = '#222222';
-        this.tileColor = this.tileStyle === 0 ? '#1C1C1E' : '#007AFF';
-      } else {
-        this.bgColor = '#FFFFFF';
-        this.textColor = '#000000';
-        this.btnBgColor = '#E5E5EA';
-        this.tileColor = this.tileStyle === 0 ? '#D1D1D6' : '#34C759';
-      }
-      this.animClass = this.isAnim ? 'anim' : '';
+    toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); this.saveSettings(); },
+    toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); this.saveSettings(); },
+    toggleAnim() { this.isAnimationEnabled = !this.isAnimationEnabled; this.triggerVibe(); this.saveSettings(); },
+    toggleVib() { this.isVibrateEnabled = !this.isVibrateEnabled; this.triggerVibe(); this.saveSettings(); },
+    saveSettings() {
+      storage.set({ key: 'dark', value: String(this.isDark) });
+      storage.set({ key: 'anim', value: String(this.isAnimationEnabled) });
+      storage.set({ key: 'vib', value: String(this.isVibrateEnabled) });
+      storage.set({ key: 'style', value: String(this.tileStyle) });
     },
-    toggleTheme() {
-      this.isDark = !this.isDark;
-      this.triggerVibe();
-      this.updateStyles();
-    },
-    toggleColor() {
-      this.tileStyle = this.tileStyle === 0 ? 1 : 0;
-      this.triggerVibe();
-      this.updateStyles();
-    },
-    toggleAnim() {
-      this.isAnim = !this.isAnim;
-      this.triggerVibe();
-      this.updateStyles();
-    },
-    toggleVib() {
-      this.isVib = !this.isVib;
-      this.triggerVibe();
-      this.updateStyles();
+    loadSettings() {
+      storage.get({ key: 'dark', default: 'true', success: (ret) => { this.isDark = ret.data === 'true' } });
+      storage.get({ key: 'anim', default: 'true', success: (ret) => { this.isAnimationEnabled = ret.data === 'true' } });
+      storage.get({ key: 'vib', default: 'true', success: (ret) => { this.isVibrateEnabled = ret.data === 'true' } });
+      storage.get({ key: 'style', default: '0', success: (ret) => { this.tileStyle = parseInt(ret.data) || 0 } });
     }
   }
 </script>
