@@ -1,26 +1,26 @@
 <template>
-  <div class="container" style="background-color: {{ currentTheme.bg }};">
+  <div class="container" style="background-color: {{ bgColor }};">
     <!-- ИГРОВОЕ ПОЛЕ -->
     <div class="board">
-      <div for="{{(index, item) in board}}" class="cell-wrapper">
+      <div for="{{board}}" class="cell-wrapper">
         <input 
-          if="{{item !== 0}}" 
+          if="{{$item !== 0}}" 
           type="button" 
-          class="cell {{isAnimationEnabled ? 'anim' : ''}}" 
-          style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }};"
-          value="{{item}}" 
-          onclick="moveTile(index)"
+          class="cell {{animClass}}" 
+          style="background-color: {{ tileColor }}; color: {{ textColor }};"
+          value="{{$item}}" 
+          onclick="moveTile($idx)"
         />
       </div>
     </div>
 
     <!-- МЕНЮ НАСТРОЕК -->
     <div class="menu">
-      <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnimationEnabled ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVibrateEnabled ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+      <text class="menu-title" style="color: {{ textColor }};">Настройки</text>
+      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
+      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
+      <input type="button" class="btn" style="background-color: {{ btnBgColor }}; color: {{ textColor }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
     </div>
 
     <!-- АВТОР -->
@@ -46,7 +46,6 @@
 </style>
 
 <script>
-  import storage from '@system.storage'
   import vibrator from '@system.vibrator'
 
   export default {
@@ -55,38 +54,45 @@
       emptyIndex: 8,
       isDark: true,
       tileStyle: 0,
-      isAnimationEnabled: true,
-      isVibrateEnabled: true,
-      themes: {
-        dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
-        light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
-      },
-      tileColors: [
-        { dark: '#1C1C1E', light: '#D1D1D6' },
-        { dark: '#007AFF', light: '#34C759' }
-      ]
-    },
-    computed: {
-      currentTheme() { return this.isDark ? this.themes.dark : this.themes.light },
-      currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light'] }
+      isAnim: true,
+      isVib: true,
+      bgColor: '#000000',
+      textColor: '#FFFFFF',
+      btnBgColor: '#222222',
+      tileColor: '#1C1C1E',
+      animClass: 'anim'
     },
     onCreate() {
       this.shuffle();
+      this.updateStyles();
     },
     shuffle() {
-      let arr = [...this.board];
+      let arr =;
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        let temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
       }
       this.board = arr;
-      this.emptyIndex = arr.indexOf(0);
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i] === 0) {
+          this.emptyIndex = i;
+          break;
+        }
+      }
     },
     moveTile(index) {
-      const r1 = Math.floor(index / 3), c1 = index % 3;
-      const r2 = Math.floor(this.emptyIndex / 3), c2 = this.emptyIndex % 3;
+      const r1 = Math.floor(index / 3);
+      const c1 = index % 3;
+      const r2 = Math.floor(this.emptyIndex / 3);
+      const c2 = this.emptyIndex % 3;
+      
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        let newBoard = [...this.board];
+        let newBoard = [];
+        for (let i = 0; i < this.board.length; i++) {
+          newBoard.push(this.board[i]);
+        }
         newBoard[this.emptyIndex] = newBoard[index];
         newBoard[index] = 0;
         this.board = newBoard;
@@ -95,13 +101,43 @@
       }
     },
     triggerVibe() {
-      if (this.isVibrateEnabled) {
+      if (this.isVib) {
         try { vibrator.vibrate({ mode: 'short' }); } catch(e){}
       }
     },
-    toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
-    toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
-    toggleAnim() { this.isAnimationEnabled = !this.isAnimationEnabled; this.triggerVibe(); },
-    toggleVib() { this.isVibrateEnabled = !this.isVibrateEnabled; this.triggerVibe(); }
+    updateStyles() {
+      if (this.isDark) {
+        this.bgColor = '#000000';
+        this.textColor = '#FFFFFF';
+        this.btnBgColor = '#222222';
+        this.tileColor = this.tileStyle === 0 ? '#1C1C1E' : '#007AFF';
+      } else {
+        this.bgColor = '#FFFFFF';
+        this.textColor = '#000000';
+        this.btnBgColor = '#E5E5EA';
+        this.tileColor = this.tileStyle === 0 ? '#D1D1D6' : '#34C759';
+      }
+      this.animClass = this.isAnim ? 'anim' : '';
+    },
+    toggleTheme() {
+      this.isDark = !this.isDark;
+      this.triggerVibe();
+      this.updateStyles();
+    },
+    toggleColor() {
+      this.tileStyle = this.tileStyle === 0 ? 1 : 0;
+      this.triggerVibe();
+      this.updateStyles();
+    },
+    toggleAnim() {
+      this.isAnim = !this.isAnim;
+      this.triggerVibe();
+      this.updateStyles();
+    },
+    toggleVib() {
+      this.isVib = !this.isVib;
+      this.triggerVibe();
+      this.updateStyles();
+    }
   }
 </script>
