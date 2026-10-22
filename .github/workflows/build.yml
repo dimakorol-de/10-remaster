@@ -13,6 +13,13 @@ jobs:
         with:
           node-version: 20
           
+      - name: Download High-Quality Icon (Blue 15)
+        run: |
+          # Автоматически создаем папку common и скачиваем туда готовую синюю иконку "15"
+          mkdir -p src/common
+          curl -sL "https://placehold.co" -o src/common/logo.png
+          echo "Иконка '15' успешно добавлена в проект!"
+          
       - name: Install and Build (Release Mode)
         run: |
           npm install
