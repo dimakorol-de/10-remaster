@@ -21,22 +21,20 @@ jobs:
           from PIL import Image, ImageDraw, ImageFont
           img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
           draw = ImageDraw.Draw(img)
-          
           mask = Image.new('L', (192, 192), 0)
           mask_draw = ImageDraw.Draw(mask)
           mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
           img.putalpha(mask)
-          
           draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
           img.save('src/common/logo.png')
           "
-          echo "Премиальная иконка '15' успешно создана!"
+          echo "Иконка готова!"
 
       - name: Inject Game Code and Manifest
         run: |
           mkdir -p src/pages/index
           
-          # 1. Записываем манифест с коротким названием «Ремастер»
+          # 1. Обновляем манифест приложения
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen.remaster",
@@ -48,7 +46,6 @@ jobs:
             "deviceTypeList": ["band", "watch"],
             "features": [
               { "name": "system.router" },
-              { "name": "system.storage" },
               { "name": "system.vibrator" }
             ],
             "config": {
@@ -66,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 2. Интерфейс игры 4х4
+          # 2. Оптимизированный интерфейс 4х4
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ bgColor }};">
@@ -113,7 +110,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 3. Логика игры 4х4
+          # 3. Чистая логика игры без вызовов хранилища storage
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           export default {
@@ -175,24 +172,3 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); this.updateStyles(); }
           }
           EOF
-
-      - name: Install and Build (True Release Sign Mode)
-        run: |
-          npm install
-          
-          # Создаем локальные сертификаты релиза
-          mkdir -p sign/release
-          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
-          
-          # Компилируем легальный релизный RPK
-          npx aiot release
-          
-          mkdir -p dist_output
-          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
-          
-      - name: Upload RPK
-        uses: actions/upload-artifact@v4
-        with:
-          name: rpk-build
-          path: dist_output/remaster.rpk
-          if-no-files-found: error
