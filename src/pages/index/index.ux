@@ -2,7 +2,7 @@
   <div class="container" style="background-color: {{ bgColor }};">
     <!-- ИГРОВОЕ ПОЛЕ -->
     <div class="board">
-      <div for="{{gameMatrix}}" class="cell-wrapper">
+      <div for="{{board}}" class="cell-wrapper">
         <input 
           if="{{$item !== 0}}" 
           type="button" 
@@ -50,7 +50,7 @@
 
   export default {
     private: {
-      gameMatrix:,
+      board:,
       emptyIndex: 8,
       isDark: true,
       tileStyle: 0,
@@ -74,7 +74,7 @@
         arr[i] = arr[j];
         arr[j] = temp;
       }
-      this.gameMatrix = arr;
+      this.board = arr;
       for (let i = 0; i < arr.length; i++) {
         if (arr[i] === 0) {
           this.emptyIndex = i;
@@ -90,12 +90,12 @@
       
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
         let newBoard = [];
-        for (let i = 0; i < this.gameMatrix.length; i++) {
-          newBoard.push(this.gameMatrix[i]);
+        for (let i = 0; i < this.board.length; i++) {
+          newBoard.push(this.board[i]);
         }
         newBoard[this.emptyIndex] = newBoard[index];
         newBoard[index] = 0;
-        this.gameMatrix = newBoard;
+        this.board = newBoard;
         this.emptyIndex = index;
         this.triggerVibe();
       }
