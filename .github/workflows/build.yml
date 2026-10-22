@@ -172,3 +172,25 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); this.updateStyles(); }
           }
           EOF
+          echo "Код игры внедрен!"
+
+      - name: Install and Build (True Release Sign Mode)
+        run: |
+          npm install
+          
+          # Генерируем легальные ключи релиза
+          mkdir -p sign/release
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
+          
+          # Запускаем компиляцию
+          npx aiot release
+          
+          mkdir -p dist_output
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
+          
+      - name: Upload RPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpk-build
+          path: dist_output/remaster.rpk
+          if-no-files-found: error
