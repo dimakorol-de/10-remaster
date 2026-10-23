@@ -1,29 +1,27 @@
 <template>
-  <div class="container" style="background-color: {{isDark ? '#000000' : '#F2F2F7'}};">
-    <!-- Панель счётчиков наверху -->
+  <div class="container" style="background-color: {{isWin ? '#FFD700' : (isDark ? '#000000' : '#F2F2F7')}};">
+    
+    <!-- СЧЁТЧИКИ НАМЕРТВО ЗАКРЕПЛЕНЫ В САМОМ ВЕРХУ -->
     <div class="top-stats-bar">
-      <text class="bar-text" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">⏱ {{formattedTime}}</text>
-      <text class="bar-text" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">👣 {{moves}}</text>
+      <text class="bar-text" style="color: {{isWin ? '#000000' : (isDark ? '#FFFFFF' : '#000000')}};">⏱ {{formattedTime}}</text>
+      <text class="bar-text" style="color: {{isWin ? '#000000' : (isDark ? '#FFFFFF' : '#000000')}};">👣 {{moves}}</text>
     </div>
 
-    <!-- Экран победы с салютом -->
-    <div if="{{isWin}}" class="victory-overlay">
-      <div class="firework fw-1"></div>
-      <div class="firework fw-2"></div>
-      <div class="firework fw-3"></div>
+    <!-- ВАШ ОРИГИНАЛЬНЫЙ ЭКРАН ПОБЕДЫ -->
+    <div if="{{isWin}}" class="box">
       <text class="win-title">ПОБЕДА!</text>
-      <text class="win-subtitle" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Головоломка собрана!</text>
-      <text class="record-text" style="color: #FFD700;">⭐ Рекорд: {{bestMoves}}х / {{bestTime}}с ⭐</text>
+      <text class="win-subtitle">Игра успешно собрана!</text>
+      <text class="record-text" style="color: #000000;">Рекорд: {{bestMoves}}х / {{bestTime}}с</text>
       <input type="button" class="btn win-btn" value="🎮 Играть снова" onclick="restartGame" />
-      <div class="credits"><text class="c-label" style="color:#8E8E93;">Создал</text><text class="c-name" style="color:#FFD700;">Александр Солдатов</text></div>
+      <div class="credits"><text class="c-label" style="color: #000000;">Создал</text><text class="c-name" style="color: #000000;">Александр Солдатов</text></div>
     </div>
 
-    <!-- Основной игровой экран -->
+    <!-- ЭКРАН ИГРЫ -->
     <div if="{{!showSettings && !isWin}}" class="box">
       <text class="game-title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки {{gridSize}}x{{gridSize}}</text>
       <div class="board" style="width: 184px;">
         <div for="{{(idx, item) in gameMatrix}}" class="cell-wrapper" style="width: {{cellSizePx}}px; height: {{cellSizePx}}px; margin: 1.5px;">
-          <input if="{{item !== 0}}" type="button" class="cell {{isAnim ? 'anim' : ''}}" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}}; width: {{cellSizePx}}px; height: {{cellSizePx}}px; font-size: {{fontSizePx}}px;" value="{{item}}" onclick="moveTile(idx)" />
+          <input if="{{item !== 0}}" type="button" class="cell {{isAnim ? 'anim' : ''}}" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="{{item}}" onclick="moveTile(idx)" />
         </div>
       </div>
       <div class="game-menu">
@@ -32,7 +30,7 @@
       </div>
     </div>
 
-    <!-- Экран настроек -->
+    <!-- ЭКРАН НАСТРОЕК -->
     <div if="{{showSettings && !isWin}}" class="box">
       <text class="game-title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Настройки</text>
       <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Режим: {{gridSize}}x{{gridSize}}" onclick="cycleGridSize" />
@@ -48,29 +46,29 @@
 <style>
   .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding-top: 10px; }
   .box { flex-direction: column; align-items: center; width: 212px; margin-top: 5px; }
+  
+  /* Верхняя фиксированная панель для счётчиков */
   .top-stats-bar { width: 190px; justify-content: space-between; padding: 5px 10px; margin-bottom: 5px; border-bottom: 1px solid #333333; }
   .bar-text { font-size: 16px; font-weight: bold; }
+  
   .game-title { font-size: 16px; margin-bottom: 8px; font-weight: bold; }
   .board { flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
   .cell-wrapper { justify-content: center; align-items: center; }
-  .cell { border-radius: 8px; font-weight: bold; }
+  .cell { width: 43px; height: 43px; border-radius: 8px; font-size: 18px; font-weight: bold; }
   .anim { transition: transform 0.22s ease-in-out; }
   .game-menu { width: 184px; justify-content: space-between; }
   .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 15px; margin-bottom: 6px; background-color: #222222; color: #FFFFFF; }
   .half-btn { width: 88px; height: 35px; font-size: 14px; }
-  .credits { flex-direction: column; align-items: center; margin-top: 15px; }
+  
+  /* Стили оригинального экрана победы Александро */
+  .win-title { font-size: 28px; color: #000000; font-weight: bold; margin-top: 40px; margin-bottom: 5px; }
+  .win-subtitle { font-size: 14px; color: #333333; margin-bottom: 15px; font-weight: 500; }
+  .record-text { font-size: 14px; font-weight: bold; margin-bottom: 30px; }
+  .win-btn { background-color: #000000; color: #FFFFFF; font-weight: bold; }
+  
+  .credits { flex-direction: column; align-items: center; margin-top: 20px; }
   .c-label { font-size: 11px; color: #8E8E93; }
-  .c-name { font-size: 13px; font-weight: bold; }
-  .victory-overlay { flex-direction: column; align-items: center; width: 212px; height: 400px; justify-content: center; }
-  .win-title { font-size: 32px; color: #34C759; font-weight: bold; margin-bottom: 5px; }
-  .win-subtitle { font-size: 15px; margin-bottom: 10px; font-weight: 500; }
-  .record-text { font-size: 14px; font-weight: bold; margin-bottom: 25px; }
-  .win-btn { background-color: #34C759; color: #FFFFFF; font-weight: bold; }
-  .firework { position: absolute; border-radius: 40px; opacity: 0; animation-duration: 1.5s; animation-iteration-count: infinite; }
-  .fw-1 { width: 80px; height: 80px; border: 3px solid #FF3B30; top: 80px; left: 66px; animation-name: pulse-r; }
-  .fw-2 { width: 120px; height: 120px; border: 3px solid #007AFF; top: 60px; left: 46px; animation-name: pulse-r; animation-delay: 0.3s; }
-  .fw-3 { width: 160px; height: 120px; border: 3px solid #FFD700; top: 40px; left: 26px; animation-name: pulse-r; animation-delay: 0.6s; }
-  @keyframes pulse-r { 0% { transform: scale(0.2); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+  .c-name { font-size: 13px; color: #FFD700; font-weight: bold; }
 </style>
 
 <script>
@@ -152,13 +150,14 @@
       this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
     },
     cycleGridSize() { this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1; this.loadRecords(); this.restartGame(); },
-    toMenu() { this.showSettings = true; this.triggerVibe('short'); },toGame() { this.showSettings = false; this.triggerVibe('short'); },
-toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
-toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe('short'); },
-toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
-triggerVibe(mode) { if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} } },
-saveRecord() {
-storage.get({ key: 'bm_' + this.gridSize, success: (data) => { if (!data || this.moves < parseInt(data)) { storage.set({ key: 'bm_' + this.gridSize, value: this.moves.toString() }); this.bestMoves = this.moves; } } });
+    toMenu() { this.showSettings = true; this.triggerVibe('short'); },
+    toGame() { this.showSettings = false; this.triggerVibe('short'); },
+    toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
+    toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe('short'); },
+    toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
+    triggerVibe(mode) { if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} } },
+    saveRecord() {
+      storage.get({ key: 'bm_' + this.gridSize, success: (data) => { if (!data || this.moves < parseInt(data)) { storage.set({ key: 'bm_' + this.gridSize, value: this.moves.toString() }); this.bestMoves = this.moves; } } });
 storage.get({ key: 'bt_' + this.gridSize, success: (data) => { if (!data || this.timerSeconds < parseInt(data)) { storage.set({ key: 'bt_' + this.gridSize, value: this.timerSeconds.toString() }); this.bestTime = this.timerSeconds; } } });
 },
 loadRecords() {
