@@ -184,14 +184,14 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Конфигурация исправлена!"
+          echo "Конфигурация полностью исправлена!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
           npm install
           mkdir -p sign/release
           openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
-          npx aiot release
+          npm run release
           mkdir -p dist_output
           find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
           
