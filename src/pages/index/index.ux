@@ -1,184 +1,43 @@
-<template>
-  <div class="container" style="background-color: {{isDark ? '#000000' : '#F2F2F7'}};">
-    
-    <!-- КРУПНЫЕ СЧЁТЧИКИ В САМОМ ВЕРХУ ЭКРАНА -->
-    <div class="top-stats-bar">
-      <text class="bar-text" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">⏱ {{formattedTime}}</text>
-      <text class="bar-text" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">👣 {{moves}}</text>
-    </div>
-
-    <!-- ЭКРАН ПОБЕДЫ С АНИМАЦИЕЙ ФЕЙЕРВЕРКОВ -->
-    <div if="{{isWin}}" class="victory-overlay">
-      <!-- Частицы салюта (разлетаются в разные стороны) -->
-      <div class="firework fw-1"></div>
-      <div class="firework fw-2"></div>
-      <div class="firework fw-3"></div>
-      <div class="firework fw-4"></div>
-      <div class="firework fw-5"></div>
-      
-      <text class="win-title">ПОБЕДА!</text>
-      <text class="win-subtitle" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Головоломка собрана!</text>
-      <text class="record-text" style="color: #FFD700;">⭐ Рекорд: {{bestMoves}}х / {{bestTime}}с ⭐</text>
-      <input type="button" class="btn win-btn" value="🎮 Играть снова" onclick="restartGame" />
-      <div class="credits"><text class="c-label" style="color:#8E8E93;">Создал</text><text class="c-name" style="color:#FFD700;">Александр Солдатов</text></div>
-    </div>
-
-    <!-- ОСНОВНОЙ ЭКРАН ИГРЫ -->
-    <div if="{{!showSettings && !isWin}}" class="box">
-      <text class="game-title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки {{gridSize}}x{{gridSize}}</text>
-      <div class="board" style="width: 184px;">
-        <div for="{{(idx, item) in gameMatrix}}" class="cell-wrapper" style="width: {{cellSizePx}}px; height: {{cellSizePx}}px; margin: 1.5px;">
-          <input if="{{item !== 0}}" type="button" class="cell {{isAnim ? 'anim' : ''}}" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}}; width: {{cellSizePx}}px; height: {{cellSizePx}}px; font-size: {{fontSizePx}}px;" value="{{item}}" onclick="moveTile(idx)" />
-        </div>
-      </div>
-      <div class="game-menu">
-        <input type="button" class="btn half-btn" value="{{autoPlaying ? '■ Стоп' : '💡 Автоход'}}" onclick="toggleAutoRun" />
-        <input type="button" class="btn half-btn" value="⚙ Меню" onclick="toMenu" />
-      </div>
-    </div>
-
-    <!-- ЭКРАН НАСТРОЕК -->
-    <div if="{{showSettings && !isWin}}" class="box">
-      <text class="game-title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Настройки</text>
-      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Режим: {{gridSize}}x{{gridSize}}" onclick="cycleGridSize" />
-      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Тема: {{isDark ? '● Темная' : '○ Светлая'}}" onclick="toggleTheme" />
-      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
-      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Вибро: {{isVib ? '☑ ВКЛ' : '☒ ВЫКЛ'}}" onclick="toggleVib" />
-      <input type="button" class="btn" style="background-color: #007AFF; color: #FFFFFF;" value="◀ Назад" onclick="toGame" />
-      <div class="credits"><text class="c-label">Создал</text><text class="c-name">Александр Солдатов</text></div>
-    </div>
-  </div>
-</template>
-
-<style>
-  .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding-top: 10px; }
-  .box { flex-direction: column; align-items: center; width: 212px; margin-top: 5px; }
-  
-  /* Фиксация панели счётчиков в самом верху экрана браслета */
-  .top-stats-bar { width: 190px; justify-content: space-between; padding: 5px 10px; margin-bottom: 5px; border-bottom: 1px solid #333333; }
-  .bar-text { font-size: 16px; font-weight: bold; }
-  
-  .game-title { font-size: 16px; margin-bottom: 8px; font-weight: bold; }
-  .board { flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
-  .cell-wrapper { justify-content: center; align-items: center; }
-  .cell { border-radius: 8px; font-weight: bold; }
-  .anim { transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease; }
-  .game-menu { width: 184px; justify-content: space-between; }
-  .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 15px; margin-bottom: 6px; background-color: #222222; color: #FFFFFF; }
-  .half-btn { width: 88px; height: 35px; font-size: 14px; }
-  .credits { flex-direction: column; align-items: center; margin-top: 10px; }
-  .c-label { font-size: 11px; color: #8E8E93; }
-  .c-name { font-size: 13px; font-weight: bold; }
-
-  /* ЭКРАН ПОБЕДЫ С САЛЮТОМ */
-  .victory-overlay { flex-direction: column; align-items: center; width: 212px; height: 400px; justify-content: center; position: relative; }
-  .win-title { font-size: 32px; color: #34C759; font-weight: bold; margin-bottom: 5px; animation-name: pop; animation-duration: 0.4s; }
-  .win-subtitle { font-size: 15px; margin-bottom: 10px; font-weight: 500; }
-  .record-text { font-size: 14px; font-weight: bold; margin-bottom: 25px; }
-  .win-btn { background-color: #34C759; color: #FFFFFF; font-weight: bold; }
-
-  @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-  /* СТИЛИ ДЛЯ АНИМАЦИИ ВСПЫШЕК ФЕЙЕРВЕРКА */
-  .firework { position: absolute; width: 8px; height: 8px; border-radius: 4px; top: 100px; left: 102px; animation-duration: 1.2s; animation-iteration-count: infinite; }
-  
-  .fw-1 { background-color: #FF3B30; animation-name: explode-1; }
-  .fw-2 { background-color: #007AFF; animation-name: explode-2; animation-delay: 0.2s; }
-  .fw-3 { background-color: #FFD700; animation-name: explode-3; animation-delay: 0.4s; }
-  .fw-4 { background-color: #34C759; animation-name: explode-4; animation-delay: 0.1s; }
-  .fw-5 { background-color: #AF52DE; animation-name: explode-5; animation-delay: 0.3s; }
-
-  @keyframes explode-1 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-60px, -50px) scale(0.2); opacity: 0; } }
-  @keyframes explode-2 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(60px, -40px) scale(0.2); opacity: 0; } }
-  @keyframes explode-3 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-30px, 60px) scale(0.2); opacity: 0; } }
-  @keyframes explode-4 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(45px, 50px) scale(0.2); opacity: 0; } }
-  @keyframes explode-5 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(0px, -70px) scale(0.2); opacity: 0; } }
-</style>
-
+<template><div class="container" style="background-color:{{isDark?'#000000':'#F2F2F7'}};"><div class="top-stats-bar"><text class="bar-text" style="color:{{isDark?'#FFFFFF':'#000000'}};">⏱ {{formattedTime}}</text><text class="bar-text" style="color:{{isDark?'#FFFFFF':'#000000'}};">👣 {{moves}}</text></div><div if="{{isWin}}" class="victory-overlay"><div class="firework fw-1"></div><div class="firework fw-2"></div><div class="firework fw-3"></div><text class="win-title">ПОБЕДА!</text><text class="win-subtitle" style="color:{{isDark?'#FFFFFF':'#000000'}};">Головоломка собрана!</text><text class="record-text" style="color:#FFD700;">⭐ Рекорд: {{bestMoves}}х / {{bestTime}}с ⭐</text><input type="button" class="btn win-btn" value="🎮 Играть снова" onclick="restartGame"/><div class="credits"><text class="c-label" style="color:#8E8E93;">Создал</text><text class="c-name" style="color:#FFD700;">Александр Солдатов</text></div></div><div if="{{!showSettings && !isWin}}" class="box"><text class="game-title" style="color:{{isDark?'#FFFFFF':'#000000'}};">Пятнашки {{gridSize}}x{{gridSize}}</text><div class="board" style="width:184px;"><div for="{{(idx,item) in gameMatrix}}" class="cell-wrapper" style="width:{{cellSizePx}}px;height:{{cellSizePx}}px;margin:1.5px;"><input if="{{item!==0}}" type="button" class="cell {{isAnim?'anim':''}}" style="background-color:{{tileStyle===0?(isDark?'#1C1C1E':'#E5E5EA'):(isDark?'#007AFF':'#34C759')}};color:{{isDark?'#FFFFFF':'#000000'}};width:{{cellSizePx}}px;height:{{cellSizePx}}px;font-size:{{fontSizePx}}px;" value="{{item}}" onclick="moveTile(idx)"/></div></div><div class="game-menu"><input type="button" class="btn half-btn" value="{{autoPlaying?'■ Стоп':'💡 Автоход'}}" onclick="toggleAutoRun"/><input type="button" class="btn half-btn" value="⚙ Меню" onclick="toMenu"/></div></div><div if="{{showSettings && !isWin}}" class="box"><text class="game-title" style="color:{{isDark?'#FFFFFF':'#000000'}};">Настройки</text><input type="button" class="btn" style="background-color:{{isDark?'#222222':'#E5E5EA'}};color:{{isDark?'#FFFFFF':'#000000'}};" value="Режим: {{gridSize}}x{{gridSize}}" onclick="cycleGridSize"/><input type="button" class="btn" style="background-color:{{isDark?'#222222':'#E5E5EA'}};color:{{isDark?'#FFFFFF':'#000000'}};" value="Тема: {{isDark?'● Темная':'○ Светлая'}}" onclick="toggleTheme"/><input type="button" class="btn" style="background-color:{{isDark?'#222222':'#E5E5EA'}};color:{{isDark?'#FFFFFF':'#000000'}};" value="Цвет: {{tileStyle===0?'Стиль 1':'Стиль 2'}}" onclick="toggleColor"/><input type="button" class="btn" style="background-color:{{isDark?'#222222':'#E5E5EA'}};color:{{isDark?'#FFFFFF':'#000000'}};" value="Вибро: {{isVib?'☑ ВКЛ':'☒ ВЫКЛ'}}" onclick="toggleVib"/><input type="button" class="btn" style="background-color:#007AFF;color:#FFFFFF;" value="◀ Назад" onclick="toGame"/><div class="credits"><text class="c-label">Создал</text><text class="c-name">Александр Солдатов</text></div></div></div></template>
+<style>.container{flex-direction:column;align-items:center;width:212px;height:490px;padding-top:10px}.box{flex-direction:column;align-items:center;width:212px;margin-top:5px}.top-stats-bar{width:190px;justify-content:space-between;padding:5px 10px;margin-bottom:5px;border-bottom:1px solid #333}.bar-text{font-size:16px;font-weight:bold}.game-title{font-size:16px;margin-bottom:8px;font-weight:bold}.board{flex-wrap:wrap;justify-content:center;margin-bottom:10px}.cell-wrapper{justify-content:center;align-items:center}.cell{border-radius:8px;font-weight:bold}.anim{transition:transform .22s ease-in-out}.game-menu{width:184px;justify-content:space-between}.btn{width:170px;height:35px;border-radius:8px;font-size:15px;margin-bottom:6px;background-color:#222;color:#fff}.half-btn{width:88px;height:35px;font-size:14px}.credits{flex-direction:column;align-items:center;margin-top:15px}.c-label{font-size:11px;color:#8E8E93}.c-name{font-size:13px;font-weight:bold}.victory-overlay{flex-direction:column;align-items:center;width:212px;height:400px;justify-content:center}.win-title{font-size:32px;color:#34C759;font-weight:bold;margin-bottom:5px}.win-subtitle{font-size:15px;margin-bottom:10px;font-weight:500}.record-text{font-size:14px;font-weight:bold;margin-bottom:25px}.win-btn{background-color:#34C759;color:#fff;font-weight:bold}.firework{position:absolute;border-radius:40px;opacity:0;animation-duration:1.5s;animation-iteration-count:infinite}.fw-1{width:80px;height:80px;border:3px solid #ff3b30;top:80px;left:66px;animation-name:pulse-r}.fw-2{width:120px;height:120px;border:3px solid #007aff;top:60px;left:46px;animation-name:pulse-r;animation-delay:.3s}.fw-3{width:160px;height:120px;border:3px solid #ffd700;top:40px;left:26px;animation-name:pulse-r;animation-delay:.6s}@keyframes pulse-r{0%{transform:scale(0.2);opacity:0}50%{opacity:1}100%{transform:scale(1);opacity:0}}</style>
 <script>
-  import vibrator from '@system.vibrator'
-  import storage from '@system.storage'
-  export default {
-    private: {
-      gameMatrix: [], movesHistory: [], gridSize: 4, moves: 0, timerSeconds: 0, timerId: null,
-      isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false,
-      isAnim: true, autoPlaying: false, autoTimerId: null, bestMoves: '-', bestTime: '-'
-    },
-    computed: {
-      formattedTime() {
-        const m = Math.floor(this.timerSeconds / 60).toString().padStart(2, '0');
-        const s = (this.timerSeconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-      },
-      cellSizePx() { if (this.gridSize === 3) return 58; if (this.gridSize === 5) return 33; return 43; },
-      fontSizePx() { if (this.gridSize === 3) return 26; if (this.gridSize === 5) return 16; return 20; }
-    },
-    onInit() { this.loadRecords(); this.restartGame(); },
-    onDestroy() { this.stopTimer(); this.stopAutoRun(); },
-    restartGame() {
-      this.isWin = false; this.showSettings = false; this.movesHistory = []; this.moves = 0; this.timerSeconds = 0; this.stopTimer(); this.stopAutoRun();
-      let totalCells = this.gridSize * this.gridSize;
-      let arr = Array.from({length: totalCells}, (v, i) => (i + 1) % totalCells);
-      let emptyIndex = totalCells - 1;
-      let shuffleSteps = this.gridSize === 3 ? 20 : (this.gridSize === 5 ? 60 : 40);
-      for (let k = 0; k < shuffleSteps; k++) {
-        let r = Math.floor(emptyIndex / this.gridSize), c = emptyIndex % this.gridSize;
-        let validMoves = [];
-        if (r > 0) validMoves.push(emptyIndex - this.gridSize);
-        if (r < this.gridSize - 1) validMoves.push(emptyIndex + this.gridSize);
-        if (c > 0) validMoves.push(emptyIndex - 1);
-        if (c < this.gridSize - 1) validMoves.push(emptyIndex + 1);
-        let nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-        arr[emptyIndex] = arr[nextMove]; arr[nextMove] = 0;
-        this.movesHistory.push(emptyIndex);
-        emptyIndex = nextMove;
-      }
-      this.gameMatrix = arr;
-    },
-    startTimer() { if (!this.timerId) { this.timerId = setInterval(() => { this.timerSeconds++; }, 1000); } },
-    stopTimer() { if (this.timerId) { clearInterval(this.timerId); this.timerId = null; } },
-    moveTile(index) {
-      if (this.isWin) return;
-      let emptyIndex = this.gameMatrix.indexOf(0);
-      if ((Math.abs(Math.floor(index/this.gridSize) - Math.floor(emptyIndex/this.gridSize)) + Math.abs((index%this.gridSize) - (emptyIndex%this.gridSize))) === 1) {
-        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
-        let newBoard = [...this.gameMatrix]; newBoard[emptyIndex] = newBoard[index]; newBoard[index] = 0;
-        this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
-      }
-    },
-    checkWin() {
-      let totalCells = this.gridSize * this.gridSize;for (let i = 0; i < totalCells - 1; i++) { if (this.gameMatrix[i] !== i + 1) return; }
-this.isWin = true; this.stopTimer(); this.stopAutoRun(); this.triggerVibe('long');
-if (this.moves > 0) this.saveRecord();
-},
-toggleAutoRun() {
-if (this.autoPlaying) { this.stopAutoRun(); } else {
-this.autoPlaying = true; this.startTimer();
-this.autoTimerId = setInterval(() => { this.makeAutoMove(); }, 450);
+import vibrator from '@system.vibrator'
+import storage from '@system.storage'
+export default {
+  private: { gameMatrix: [], movesHistory: [], gridSize: 4, moves: 0, timerSeconds: 0, timerId: null, isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false, isAnim: true, autoPlaying: false, autoTimerId: null, bestMoves: '-', bestTime: '-' },
+  computed: {
+    formattedTime() { const m = Math.floor(this.timerSeconds / 60).toString().padStart(2, '0'); const s = (this.timerSeconds % 60).toString().padStart(2, '0'); return `${m}:${s}`; },
+    cellSizePx() { if (this.gridSize === 3) return 58; if (this.gridSize === 5) return 33; return 43; },
+    fontSizePx() { if (this.gridSize === 3) return 26; if (this.gridSize === 5) return 16; return 20; }
+  },
+  onInit() { this.loadRecords(); this.restartGame(); },
+  onDestroy() { this.stopTimer(); this.stopAutoRun(); },
+  restartGame() {
+    this.isWin = false; this.showSettings = false; this.movesHistory = []; this.moves = 0; this.timerSeconds = 0; this.stopTimer(); this.stopAutoRun(); let totalCells = this.gridSize * this.gridSize; let arr = Array.from({length: totalCells}, (v, i) => (i + 1) % totalCells); let emptyIndex = totalCells - 1; let shuffleSteps = this.gridSize === 3 ? 20 : (this.gridSize === 5 ? 60 : 40);
+    for (let k = 0; k < shuffleSteps; k++) { let r = Math.floor(emptyIndex / this.gridSize), c = emptyIndex % this.gridSize; let validMoves = []; if (r > 0) validMoves.push(emptyIndex - this.gridSize); if (r < this.gridSize - 1) validMoves.push(emptyIndex + this.gridSize); if (c > 0) validMoves.push(emptyIndex - 1); if (c < this.gridSize - 1) validMoves.push(emptyIndex + 1); let nextMove = validMoves[Math.floor(Math.random() * validMoves.length)]; arr[emptyIndex] = arr[nextMove]; arr[nextMove] = 0; this.movesHistory.push(emptyIndex); emptyIndex = nextMove; }
+    this.gameMatrix = arr;
+  },
+  startTimer() { if (!this.timerId) { this.timerId = setInterval(() => { this.timerSeconds++; }, 1000); } },
+  stopTimer() { if (this.timerId) { clearInterval(this.timerId); this.timerId = null; } },
+  moveTile(index) { if (this.isWin) return; let emptyIndex = this.gameMatrix.indexOf(0); if ((Math.abs(Math.floor(index/this.gridSize) - Math.floor(emptyIndex/this.gridSize)) + Math.abs((index%this.gridSize) - (emptyIndex%this.gridSize))) === 1) { if (this.moves === 0 && !this.autoPlaying) this.startTimer(); let newBoard = [...this.gameMatrix]; newBoard[emptyIndex] = newBoard[index]; newBoard[index] = 0; this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin(); } },
+  checkWin() { let totalCells = this.gridSize * this.gridSize; for (let i = 0; i < totalCells - 1; i++) { if (this.gameMatrix[i] !== i + 1) return; } this.isWon = true; this.stopTimer(); this.stopAutoRun(); this.triggerVibe('long'); if (this.moves > 0) this.saveRecord(); },
+  toggleAutoRun() { if (this.autoPlaying) { this.stopAutoRun(); } else { this.autoPlaying = true; this.startTimer(); this.autoTimerId = setInterval(() => { this.makeAutoMove(); }, 450); } },
+  stopAutoRun() { this.autoPlaying = false; if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; } },
+  makeAutoMove() { if (this.isWin || this.movesHistory.length === 0) { this.stopAutoRun(); return; } let targetEmptyIndex = this.movesHistory.pop(); let currentEmptyIndex = this.gameMatrix.indexOf(0); let newBoard = [...this.gameMatrix]; newBoard[currentEmptyIndex] = newBoard[targetEmptyIndex]; newBoard[targetEmptyIndex] = 0; this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin(); },
+  cycleGridSize() { this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1; this.loadRecords(); this.restartGame(); },
+  toMenu() { this.showSettings = true; this.triggerVibe('short'); },
+  toGame() { this.showSettings = false; this.triggerVibe('short'); },
+  toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
+  toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe('short'); },
+  toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
+  triggerVibe(mode) { if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} } },
+  saveRecord() {
+    storage.get({ key: `bm_${this.gridSize}`, success: (data) => { if (!data || this.moves < parseInt(data)) { storage.set({ key: `bm_${this.gridSize}`, value: this.moves.toString() }); this.bestMoves = this.moves; } } });
+    storage.get({ key: `bt_${this.gridSize}`, success: (data) => { if (!data || this.timerSeconds < parseInt(data)) { storage.set({ key: `bt_${this.gridSize}`, value: this.timerSeconds.toString() }); this.bestTime = this.timerSeconds; } } });
+  },
+  loadRecords() {
+    storage.get({ key: `bm_${this.gridSize}`, success: (data) => { this.bestMoves = data || '-'; } });
+    storage.get({ key: `bt_${this.gridSize}`, success: (data) => { this.bestTime = data || '-'; } });
+  }
 }
-},
-stopAutoRun() { this.autoPlaying = false; if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; } },
-makeAutoMove() {
-if (this.isWin || this.movesHistory.length === 0) { this.stopAutoRun(); return; }
-let targetEmptyIndex = this.movesHistory.pop();
-let currentEmptyIndex = this.gameMatrix.indexOf(0);
-let newBoard = [...this.gameMatrix];
-newBoard[currentEmptyIndex] = newBoard[targetEmptyIndex]; newBoard[targetEmptyIndex] = 0;
-this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
-},
-cycleGridSize() { this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1; this.loadRecords(); this.restartGame(); },
-toMenu() { this.showSettings = true; this.triggerVibe('short'); },
-toGame() { this.showSettings = false; this.triggerVibe('short'); },
-toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
-toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe('short'); },
-toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
-triggerVibe(mode) { if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} } },
-saveRecord() {
-storage.get({ key: bm_${this.gridSize}, success: (data) => { if (!data || this.moves < parseInt(data)) { storage.set({ key: bm_${this.gridSize}, value: this.moves.toString() }); this.bestMoves = this.moves; } } });
-storage.get({ key: bt_${this.gridSize}, success: (data) => { if (!data || this.timerSeconds < parseInt(data)) { storage.set({ key: bt_${this.gridSize}, value: this.timerSeconds.toString() }); this.bestTime = this.timerSeconds; } } });
-},
-loadRecords() {
-storage.get({ key: bm_${this.gridSize}, success: (data) => { this.bestMoves = data || '-'; } });
-storage.get({ key: bt_${this.gridSize}, success: (data) => { this.bestTime = data || '-'; } });
-}
-}
+</script>
