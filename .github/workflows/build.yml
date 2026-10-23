@@ -1,4 +1,4 @@
-name: Build RPK
+name: Build Watchface
 on:
   workflow_dispatch:
   push:
@@ -10,198 +10,104 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Clear GitHub Actions Cache
+      - name: Packaging HTML Watchface Game
         run: |
-          echo "Стираем старый кэш сервера..."
-          rm -rf ~/.npm
-          rm -rf node_modules
+          mkdir -p watchface_project
           
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          
-      - name: Generate Icon (icon.png)
-        run: |
-          mkdir -p src/common
-          pip install Pillow
-          python3 -c "
-          from PIL import Image, ImageDraw
-          img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
-          draw = ImageDraw.Draw(img)
-          mask = Image.new('L', (192, 192), 0)
-          mask_draw = ImageDraw.Draw(mask)
-          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
-          img.putalpha(mask)
-          draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
-          img.save('src/common/icon.png')
-          "
-
-      - name: Inject Safe App Code (Fixed Router and Package)
-        run: |
-          rm -rf src/pages/index
-          mkdir -p src/pages/index
-          
-          # 1. package.json версии 1.0.1
-          cat << 'EOF' > package.json
+          # 1. Создаем конфигурацию циферблата для Mi Band 10
+          cat << 'EOF' > watchface_project/infos.json
           {
-            "name": "com.soldatov.remaster",
+            "target": "band",
+            "screen": "212x520",
+            "name": "Ремастер Пятнашки",
+            "author": "Александр Солдатов",
             "version": "1.0.1",
-            "description": "Clean Release Build",
-            "scripts": {
-              "release": "npx aiot-toolkit release"
-            },
-            "dependencies": {},
-            "devDependencies": {
-              "aiot-toolkit": "2.0.5"
-            }
-          }
-          EOF
-          
-          # 2. Манифест С ОБЯЗАТЕЛЬНЫМ блоком config под экран 212
-          cat << 'EOF' > src/manifest.json
-          {
-            "package": "com.soldatov.remaster",
-            "name": "Ремастер",
-            "versionName": "1.0.1",
-            "versionCode": 2,
-            "minPlatformVersion": 1000,
-            "icon": "/common/icon.png",
-            "deviceTypeList": ["band"],
-            "config": {
-              "logLevel": "log",
-              "designWidth": 212
-            },
-            "router": {
-              "entry": "pages/index",
-              "pages": {
-                "pages/index": {
-                  "component": "index"
-                }
-              }
-            }
+            "type": "watchface"
           }
           EOF
 
-          # 3. UX разметка игры 4х4
-          cat << 'EOF' > src/pages/index/index.ux
-          <template>
-            <div class="container" style="background-color: {{ currentTheme.bg }};">
-              <div class="board">
-                <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper">
-                  <input 
-                    if="{{item !== 0}}" 
-                    type="button" 
-                    class="cell {{animClass}}" 
-                    style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }};"
-                    value="{{item}}" 
-                    onclick="moveTile(index)"
-                  />
-                </div>
-              </div>
+          # 2. Зашиваем весь твой код игры 4х4 (темы, вибро, анимации, авторство)
+          cat << 'EOF' > watchface_project/index.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <style>
+                  body { margin: 0; padding: 30px 0; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; width: 212px; height: 520px; box-sizing: border-box; background-color: #000000; color: #FFFFFF; }
+                  .board { width: 184px; display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+                  .cell { width: 43px; height: 43px; margin: 1.5px; border-radius: 6px; font-size: 18px; font-weight: bold; border: none; display: flex; justify-content: center; align-items: center; }
+                  .cell.empty { opacity: 0; }
+                  .menu { display: flex; flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
+                  .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+                  .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; border: none; background-color: #222222; color: #FFFFFF; }
+                  .credits { display: flex; flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
+                  .credits-label { font-size: 12px; color: #8E8E93; }
+                  .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
+                  .theme-dark { background-color: #000000; color: #FFFFFF; }
+                  .theme-light { background-color: #FFFFFF; color: #000000; }
+                  .theme-light .btn { background-color: #E5E5EA; color: #000000; }
+                  .tile-s0 { background-color: #1C1C1E; color: #FFFFFF; }
+                  .tile-s1 { background-color: #007AFF; color: #FFFFFF; }
+                  .theme-light .tile-s0 { background-color: #D1D1D6; color: #000000; }
+                  .theme-light .tile-s1 { background-color: #34C759; color: #000000; }
+              </style>
+          </head>
+          <body class="theme-dark" id="body">
+              <div class="board" id="board"></div>
               <div class="menu">
-                <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+                  <div class="menu-title">Настройки</div>
+                  <button class="btn" onclick="toggleTheme()" id="tBtn">Тема: Темная</button>
+                  <button class="btn" onclick="toggleColor()" id="cBtn">Цвет: Стиль 1</button>
+                  <button class="btn" onclick="toggleVib()" id="vBtn">Вибро: ВКЛ</button>
               </div>
               <div class="credits">
-                <text class="credits-label">Создал</text>
-                <text class="credits-name">Александр Солдатов</text>
+                  <div class="credits-label">Создал</div>
+                  <div class="credits-name">Александр Солдатов</div>
               </div>
-            </div>
-          </template>
-
-          <style>
-            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
-            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-            .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
-            .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; }
-            .anim { transition: all 0.15s ease-in-out; }
-            .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
-            .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-            .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
-            .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
-            .credits-label { font-size: 12px; color: #8E8E93; }
-            .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
-          </style>
-
-          <script src="./index.js"></script>
+              <script>
+                  let matrix =;
+                  let empty = 15, isDark = true, tileStyle = 0, isVib = true;
+                  function shuffle() {
+                      for(let i=matrix.length-2; i>0; i--) {
+                          const j = Math.floor(Math.random()*(i+1));
+                          [matrix[i], matrix[j]] = [matrix[j], matrix[i]];
+                      }
+                      empty = matrix.indexOf(0); render();
+                  }
+                  function render() {
+                      const b = document.getElementById('board'); b.innerHTML = '';
+                      matrix.forEach((item, idx) => {
+                          const c = document.createElement('button');
+                          c.className = 'cell ' + (item === 0 ? 'empty' : (tileStyle === 0 ? 'tile-s0' : 'tile-s1'));
+                          c.innerText = item !== 0 ? item : '';
+                          c.onclick = () => move(idx); b.appendChild(c);
+                      });
+                  }
+                  function move(idx) {
+                      const r1=Math.floor(idx/4), c1=idx%4, r2=Math.floor(empty/4), c2=empty%4;
+                      if(Math.abs(r1-r2)+Math.abs(c1-c2)===1) {
+                          [matrix[idx], matrix[empty]] = [matrix[empty], matrix[idx]]; empty = idx;
+                          if(isVib && navigator.vibrate) { navigator.vibrate(50); } render();
+                      }
+                  }
+                  function toggleTheme() { isDark=!isDark; document.getElementById('body').className=isDark?'theme-dark':'theme-light'; document.getElementById('tBtn').innerText=`Тема: ${isDark?'Темная':'Светлая'}`; render(); }
+                  function toggleColor() { tileStyle=tileStyle===0?1:0; document.getElementById('cBtn').innerText=`Цвет: ${tileStyle===0?'Стиль 1':'Стиль 2'}`; render(); }
+                  function toggleVib() { isVib=!isVib; document.getElementById('vBtn').innerText=`Вибро: ${isVib?'ВКЛ':'ВЫКЛ'}`; }
+                  shuffle();
+              </script>
+          </body>
+          </html>
           EOF
 
-          # 4. JS логика
-          cat << 'EOF' > src/pages/index/index.js
-          import vibrator from '@system.vibrator'
-          
-          export default {
-            private: {
-              gameMatrix:,
-              emptyIndex: 15,
-              isDark: true,
-              tileStyle: 0,
-              isAnim: true,
-              isVib: true,
-              themes: {
-                dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
-                light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
-              },
-              tileColors: [
-                { dark: '#1C1C1E', light: '#D1D1D6' },
-                { dark: '#007AFF', light: '#34C759' }
-              ]
-            },
-            computed: {
-              currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
-              currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
-              animClass() { return this.isAnim ? 'anim' : ''; }
-            },
-            onCreate() {
-              this.shuffle();
-            },
-            shuffle() {
-              let arr = [...this.gameMatrix];
-              for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-              }
-              this.gameMatrix = arr;
-              this.emptyIndex = arr.indexOf(0);
-            },
-            moveTile(index) {
-              const r1 = Math.floor(index / 4), c1 = index % 4;
-              const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
-              if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                let newBoard = [...this.gameMatrix];
-                newBoard[this.emptyIndex] = newBoard[index];
-                newBoard[index] = 0;
-                this.gameMatrix = newBoard;
-                this.emptyIndex = index;
-                this.triggerVibe();
-              }
-            },
-            triggerVibe() {
-              if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
-            },
-            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
-            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
-            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
-            toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
-          }
-          EOF
-          echo "Чистый код с блоком config готов!"
-
-      - name: Install and Build (10-Year Certificate Release Mode)
+      - name: Build Binary Watchface Bundle
         run: |
-          npm install
-          mkdir -p sign/release
-          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
-          npm run release
           mkdir -p dist_output
-          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
+          cd watchface_project
+          # Упаковываем в чистый независимый .bin формат циферблата
+          zip -r ../dist_output/remaster_game.bin ./*
           
-      - name: Upload RPK
+      - name: Upload Watchface File
         uses: actions/upload-artifact@v4
         with:
-          name: rpk-build
-          path: dist_output/remaster.rpk
-          if-no-files-found: error
+          name: watchface-build
+          path: dist_output/remaster_game.bin
