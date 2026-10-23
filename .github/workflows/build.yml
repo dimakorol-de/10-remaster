@@ -18,7 +18,7 @@ jobs:
           mkdir -p src/common
           pip install Pillow
           python3 -c "
-          from PIL import Image, ImageDraw, ImageFont
+          from PIL import Image, ImageDraw
           img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
           draw = ImageDraw.Draw(img)
           mask = Image.new('L', (192, 192), 0)
@@ -28,13 +28,12 @@ jobs:
           draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
           img.save('src/common/logo.png')
           "
-          echo "Иконка готова!"
 
       - name: Inject Safe App Code (UX and JS)
         run: |
           mkdir -p src/pages/index
           
-          # 1. Манифест приложения
+          # 1. Манифест приложения (с поддержкой band и watch)
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen.remaster",
@@ -63,33 +62,29 @@ jobs:
           }
           EOF
 
-          # 2. Безопасный интерфейс на чистых CSS классах
+          # 2. Правильная UX разметка с явным объявлением index и item
           cat << 'EOF' > src/pages/index/index.ux
           <template>
-            <div class="container {{themeClass}}">
-              <!-- ИГРОВОЕ ПОЛЕ -->
+            <div class="container" style="background-color: {{ currentTheme.bg }};">
               <div class="board">
-                <div for="{{gameMatrix}}" class="cell-wrapper">
+                <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper">
                   <input 
-                    if="{{$item !== 0}}" 
+                    if="{{item !== 0}}" 
                     type="button" 
-                    class="cell {{animClass}} {{tileColorClass}}" 
-                    value="{{$item}}" 
-                    onclick="moveTile($idx)"
+                    class="cell {{animClass}}" 
+                    style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }};"
+                    value="{{item}}" 
+                    onclick="moveTile(index)"
                   />
                 </div>
               </div>
-              
-              <!-- НАСТРОЙКИ -->
               <div class="menu">
-                <text class="menu-title">Настройки</text>
-                <input type="button" class="btn" value="Тема: {{isDark ? 'Темная' : 'Светлая'}}" onclick="toggleTheme" />
-                <input type="button" class="btn" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
-                <input type="button" class="btn" value="Анимация: {{isAnim ? 'ВКЛ' : 'ВЫКЛ'}}" onclick="toggleAnim" />
-                <input type="button" class="btn" value="Вибро: {{isVib ? 'ВКЛ' : 'ВЫКЛ'}}" onclick="toggleVib" />
+                <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
               </div>
-              
-              <!-- АВТОР -->
               <div class="credits">
                 <text class="credits-label">Создал</text>
                 <text class="credits-name">Александр Солдатов</text>
@@ -98,7 +93,6 @@ jobs:
           </template>
 
           <style>
-            /* Базовые стили */
             .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
             .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
@@ -110,28 +104,15 @@ jobs:
             .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
             .credits-label { font-size: 12px; color: #8E8E93; }
             .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
-
-            /* Стили ТЕМНЫЙ режим */
-            .theme-dark { background-color: #000000; }
-            .theme-dark .menu-title { color: #FFFFFF; }
-            .theme-dark .btn { background-color: #222222; color: #FFFFFF; }
-            .theme-dark .tile-style0 { background-color: #1C1C1E; color: #FFFFFF; }
-            .theme-dark .tile-style1 { background-color: #007AFF; color: #FFFFFF; }
-
-            /* Стили СВЕТЛЫЙ режим */
-            .theme-light { background-color: #FFFFFF; }
-            .theme-light .menu-title { color: #000000; }
-            .theme-light .btn { background-color: #E5E5EA; color: #000000; }
-            .theme-light .tile-style0 { background-color: #D1D1D6; color: #000000; }
-            .theme-light .tile-style1 { background-color: #34C759; color: #000000; }
           </style>
 
           <script src="./index.js"></script>
           EOF
 
-          # 3. Чистая логика переключения классов
+          # 3. Официальная JS структура с computed свойствами
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
+          
           export default {
             private: {
               gameMatrix:,
@@ -140,13 +121,28 @@ jobs:
               tileStyle: 0,
               isAnim: true,
               isVib: true,
-              themeClass: 'theme-dark',
-              tileColorClass: 'tile-style0',
-              animClass: 'anim'
+              themes: {
+                dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
+                light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
+              },
+              tileColors: [
+                { dark: '#1C1C1E', light: '#D1D1D6' },
+                { dark: '#007AFF', light: '#34C759' }
+              ]
+            },
+            computed: {
+              currentTheme() {
+                return this.isDark ? this.themes.dark : this.themes.light;
+              },
+              currentTileColor() {
+                return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light'];
+              },
+              animClass() {
+                return this.isAnim ? 'anim' : '';
+              }
             },
             onCreate() {
               this.shuffle();
-              this.updateClasses();
             },
             shuffle() {
               let arr =;
@@ -155,36 +151,30 @@ jobs:
                 let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
               }
               this.gameMatrix = arr;
-              for (let i = 0; i < arr.length; i++) {
-                if (arr[i] === 0) { this.emptyIndex = i; break; }
-              }
+              this.emptyIndex = arr.indexOf(0);
             },
             moveTile(index) {
               const r1 = Math.floor(index / 4), c1 = index % 4;
               const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
               if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                let newBoard = [];
-                for (let i = 0; i < this.gameMatrix.length; i++) { newBoard.push(this.gameMatrix[i]); }
-                newBoard[this.emptyIndex] = newBoard[index]; newBoard[index] = 0;
-                this.gameMatrix = newBoard; this.emptyIndex = index;
+                let newBoard = [...this.gameMatrix];
+                newBoard[this.emptyIndex] = newBoard[index];
+                newBoard[index] = 0;
+                this.gameMatrix = newBoard;
+                this.emptyIndex = index;
                 this.triggerVibe();
               }
             },
             triggerVibe() {
               if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
             },
-            updateClasses() {
-              this.themeClass = this.isDark ? 'theme-dark' : 'theme-light';
-              this.tileColorClass = this.tileStyle === 0 ? 'tile-style0' : 'tile-style1';
-              this.animClass = this.isAnim ? 'anim' : '';
-            },
-            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); this.updateClasses(); },
-            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); this.updateClasses(); },
-            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); this.updateClasses(); },
+            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
+            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
+            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Код без динамических стилей успешно зашит!"
+          echo "Код обновлен!"
 
       - name: Install and Build (True Release Sign Mode)
         run: |
