@@ -1,131 +1,187 @@
-<template>
-  <div class="container" style="background-color: {{ isDark ? '#000000' : '#FFFFFF' }};">
-    <!-- ИГРОВОЕ ПОЛЕ -->
-    <div class="board">
-      <div for="{{(index, item) in board}}" class="cell-wrapper">
-        <input 
-          if="{{item !== 0}}" 
-          type="button" 
-          class="cell {{isAnimationEnabled ? 'anim' : ''}}" 
-          style="background-color: {{ currentTileColor }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};"
-          value="{{item}}" 
-          onclick="moveTile(index)"
-        />
-      </div>
-    </div>
+name: Build RPK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Generate Icon (icon.png)
+        run: |
+          mkdir -p src/common
+          pip install Pillow
+          python3 -c "
+          from PIL import Image, ImageDraw
+          img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
+          draw = ImageDraw.Draw(img)
+          mask = Image.new('L', (192, 192), 0)
+          mask_draw = ImageDraw.Draw(mask)
+          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
+          img.putalpha(mask)
+          draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
+          img.save('src/common/icon.png')
+          "
 
-    <!-- МЕНЮ НАСТРОЕК -->
-    <div class="menu">
-      <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
-      
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Анимация: {{ isAnimationEnabled ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Вибро: {{ isVibrateEnabled ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
-    </div>
+      - name: Inject Monolithic Code (No index.js)
+        run: |
+          mkdir -p src/pages/index
+          
+          # Удаляем старый файл index.js, чтобы его вообще не было в сборке!
+          rm -f src/pages/index/index.js
+          
+          # 1. Записываем манифест строго под com.example.fifteenpuzzle
+          cat << 'EOF' > src/manifest.json
+          {
+            "package": "com.example.fifteenpuzzle",
+            "name": "Ремастер",
+            "versionName": "1.0.0",
+            "versionCode": 1,
+            "minPlatformVersion": 1000,
+            "icon": "/common/icon.png",
+            "deviceTypeList": ["band", "watch"],
+            "features": [
+              { "name": "system.router" },
+              { "name": "system.vibrator" }
+            ],
+            "config": {
+              "logLevel": "log",
+              "designWidth": 212
+            },
+            "router": {
+              "entry": "pages/index",
+              "pages": {
+                "pages/index": {
+                  "component": "index"
+                }
+              }
+            }
+          }
+          EOF
 
-    <!-- АВТОР -->
-    <div class="credits">
-      <text class="credits-label">Создал</text>
-      <text class="credits-name">Александр Солдатов</text>
-    </div>
-  </div>
-</template>
+          # 2. Записываем МОНОЛИТНЫЙ index.ux (Логика и разметка строго вместе!)
+          cat << 'EOF' > src/pages/index/index.ux
+          <template>
+            <div class="container" style="background-color: {{ currentTheme.bg }};">
+              <div class="board">
+                <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper">
+                  <input 
+                    if="{{item !== 0}}" 
+                    type="button" 
+                    class="cell {{animClass}}" 
+                    style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }};"
+                    value="{{item}}" 
+                    onclick="moveTile(index)"
+                  />
+                </div>
+              </div>
+              <div class="menu">
+                <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
+                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+              </div>
+              <div class="credits">
+                <text class="credits-label">Создал</text>
+                <text class="credits-name">Александр Солдатов</text>
+              </div>
+            </div>
+          </template>
 
-<style>
-  .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
-  .board { width: 180px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-  .cell-wrapper { width: 56px; height: 56px; margin: 2px; justify-content: center; align-items: center; }
-  .cell { width: 56px; height: 56px; border-radius: 8px; font-size: 22px; font-weight: bold; border-width: 0px; }
-  .anim { transition: all 0.15s ease-in-out; }
-  .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
-  .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-  .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; border-width: 0px; }
-  .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
-  .credits-label { font-size: 12px; color: #8E8E93; }
-  .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
-</style>
+          <style>
+            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+            .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
+            .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; }
+            .anim { transition: all 0.15s ease-in-out; }
+            .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
+            .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+            .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+            .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
+            .credits-label { font-size: 12px; color: #8E8E93; }
+            .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
+          </style>
 
-<script>
-  // Полностью убрали импорт @system.storage для стабильности запуска
-  import vibrator from '@system.vibrator'
+          <script>
+            import vibrator from '@system.vibrator'
+            
+            export default {
+              private: {
+                gameMatrix:,
+                emptyIndex: 15,
+                isDark: true,
+                tileStyle: 0,
+                isAnim: true,
+                isVib: true,
+                themes: {
+                  dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
+                  light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
+                },
+                tileColors: [
+                  { dark: '#1C1C1E', light: '#D1D1D6' },
+                  { dark: '#007AFF', light: '#34C759' }
+                ]
+              },
+              computed: {
+                currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
+                currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
+                animClass() { return this.isAnim ? 'anim' : ''; }
+              },
+              onCreate() {
+                this.shuffle();
+              },
+              shuffle() {
+                let arr = [...this.gameMatrix];
+                for (let i = arr.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+                }
+                this.gameMatrix = arr;
+                this.emptyIndex = arr.indexOf(0);
+              },
+              moveTile(index) {
+                const r1 = Math.floor(index / 4), c1 = index % 4;
+                const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
+                if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+                  let newBoard = [...this.gameMatrix];
+                  newBoard[this.emptyIndex] = newBoard[index];
+                  newBoard[index] = 0;
+                  this.gameMatrix = newBoard;
+                  this.emptyIndex = index;
+                  this.triggerVibe();
+                }
+              },
+              triggerVibe() {
+                if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
+              },
+              toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
+              toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
+              toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
+              toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
+            }
+          </script>
+          EOF
+          echo "Монолитный UX код без index.js успешно внедрен!"
 
-  export default {
-    private: {
-      board:,
-      emptyIndex: 8,
-      isDark: true,
-      tileStyle: 0,
-      isAnimationEnabled: true,
-      isVibrateEnabled: true,
-      tileColors: [
-        { dark: '#1C1C1E', light: '#D1D1D6' },
-        { dark: '#007AFF', light: '#34C759' }
-      ]
-    },
-    computed: {
-      currentTileColor() { 
-        return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light'] 
-      }
-    },
-    onCreate() {
-      // Вызываем перемешивание сразу без ожидания памяти
-      this.shuffle();
-    },
-    shuffle() {
-      // Безопасное перемешивание без do-while циклов: делаем 20 случайных ходов из собранного состояния
-      // Это на 100% гарантирует математическую решаемость и исключает зависание процессора
-      let currentBoard =;
-      let emptyIdx = 8;
-
-      for (let i = 0; i < 30; i++) {
-        const r = Math.floor(emptyIdx / 3);
-        const c = emptyIdx % 3;
-        let validMoves = [];
-
-        if (r > 0) validMoves.push(emptyIdx - 3); // движение вверх
-        if (r < 2) validMoves.push(emptyIdx + 3); // движение вниз
-        if (c > 0) validMoves.push(emptyIdx - 1); // движение влево
-        if (c < 2) validMoves.push(emptyIdx + 1); // движение вправо
-
-        // Выбираем случайное направление из возможных
-        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-        
-        // Меняем местами
-        currentBoard[emptyIdx] = currentBoard[randomMove];
-        currentBoard[randomMove] = 0;
-        emptyIdx = randomMove;
-      }
-
-      this.board = currentBoard;
-      this.emptyIndex = emptyIdx;
-    },
-    moveTile(index) {
-      const r1 = Math.floor(index / 3), c1 = index % 3;
-      const r2 = Math.floor(this.emptyIndex / 3), c2 = this.emptyIndex % 3;
-      
-      if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        let newBoard = [...this.board];
-        newBoard[this.emptyIndex] = newBoard[index];
-        newBoard[index] = 0;
-        this.board = newBoard;
-        this.emptyIndex = index;
-        this.triggerVibe();
-      }
-    },
-    triggerVibe() {
-      if (this.isVibrateEnabled) {
-        // Оборачиваем в строгий try-catch, чтобы отказ вибромотора не вешал игру
-        try { 
-          vibrator.vibrate({ mode: 'short' }); 
-        } catch(e) {
-          console.log('Вибрация не вызвалась');
-        }
-      }
-    },
-    toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
-    toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
-    toggleAnim() { this.isAnimationEnabled = !this.isAnimationEnabled; this.triggerVibe(); },
-    toggleVib() { this.isVibrateEnabled = !this.isVibrateEnabled; this.triggerVibe(); }
-  }
-</script>
+      - name: Install and Build (10-Year Certificate Release Mode)
+        run: |
+          npm install
+          mkdir -p sign/release
+          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
+          npx aiot release
+          mkdir -p dist_output
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
+          
+      - name: Upload RPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpk-build
+          path: dist_output/remaster.rpk
+          if-no-files-found: error
