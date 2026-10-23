@@ -34,7 +34,7 @@ jobs:
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Принудительно создаем правильный package.json БЕЗ флага компонента
+          # 1. Принудительно создаем правильный package.json С ЗАВИСИМОСТЯМИ компилятора
           cat << 'EOF' > package.json
           {
             "name": "com.example.fifteenpuzzle",
@@ -45,7 +45,9 @@ jobs:
               "release": "aiot-toolkit release"
             },
             "dependencies": {},
-            "devDependencies": {}
+            "devDependencies": {
+              "aiot-toolkit": "2.0.5"
+            }
           }
           EOF
           
@@ -184,7 +186,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Конфигурация полностью исправлена!"
+          echo "Конфигурация с зависимостями успешно исправлена!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
