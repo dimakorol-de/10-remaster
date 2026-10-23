@@ -5,6 +5,7 @@
     <div if="{{isWin}}" class="box">
       <text class="win-title">ПОБЕДА!</text>
       <text class="win-subtitle">Игра успешно собрана!</text>
+      <text class="win-stats" style="color: #000000;">Время: {{formattedTime}} | Ходов: {{moves}}</text>
       <input type="button" class="btn win-btn" value="🎮 Играть снова" onclick="restartGame" />
       <div class="credits"><text class="c-label" style="color: #000000;">Создал</text><text class="c-name" style="color: #000000;">Александр Солдатов</text></div>
     </div>
@@ -12,11 +13,21 @@
     <!-- ЭКРАН ИГРЫ -->
     <div if="{{!showSettings && !isWin}}" class="box">
       <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки 4x4</text>
+      
+      <!-- Игровое поле -->
       <div class="board">
         <div for="{{gameMatrix}}" class="cell-wrapper">
           <input if="{{$item !== 0}}" type="button" class="cell" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="{{$item}}" onclick="moveTile($idx)" />
         </div>
       </div>
+
+      <!-- ТЕКСТОВЫЕ СЧЕТЧИКИ ТЕПЕРЬ ПОД ПОЛЕМ -->
+      <div class="stats-row">
+        <text class="stats-text" style="color: {{isDark ? '#8E8E93' : '#666666'}};">Время: {{formattedTime}}</text>
+        <text class="stats-text" style="color: {{isDark ? '#8E8E93' : '#666666'}};">Ходов: {{moves}}</text>
+      </div>
+
+      <!-- Кнопки управления -->
       <div class="game-menu">
         <input type="button" class="btn half-btn" value="{{autoPlaying ? '■ Стоп' : '💡 Автоход'}}" onclick="toggleAutoRun" />
         <input type="button" class="btn half-btn" value="⚙ Меню" onclick="toMenu" />
@@ -39,15 +50,23 @@
   .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding: 15px 0; }
   .box { flex-direction: column; align-items: center; width: 212px; }
   .title { font-size: 18px; margin-bottom: 12px; font-weight: bold; }
-  .win-title { font-size: 28px; color: #000000; font-weight: bold; margin-top: 40px; margin-bottom: 5px; }
-  .win-subtitle { font-size: 14px; color: #333333; margin-bottom: 40px; font-weight: 500; }
-  .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+  .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
   .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
   .cell { width: 43px; height: 43px; border-radius: 8px; font-size: 18px; font-weight: bold; }
+  
+  /* Стили для аккуратной строчки счётчиков под полем */
+  .stats-row { width: 184px; justify-content: space-between; margin-top: 2px; margin-bottom: 12px; padding: 0 4px; }
+  .stats-text { font-size: 14px; font-weight: 500; }
+  
   .game-menu { width: 184px; justify-content: space-between; }
   .btn { width: 170px; height: 32px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; background-color: #222222; color: #FFFFFF; }
   .half-btn { width: 88px; height: 32px; font-size: 13px; }
+  
+  .win-title { font-size: 28px; color: #000000; font-weight: bold; margin-top: 40px; margin-bottom: 5px; }
+  .win-subtitle { font-size: 14px; color: #333333; margin-bottom: 10px; font-weight: 500; }
+  .win-stats { font-size: 14px; font-weight: bold; margin-bottom: 25px; }
   .win-btn { background-color: #000000; color: #FFFFFF; }
+  
   .credits { flex-direction: column; align-items: center; margin-top: 20px; }
   .c-label { font-size: 11px; color: #8E8E93; }
   .c-name { font-size: 13px; color: #FFD700; font-weight: bold; }
@@ -56,11 +75,18 @@
 <script>
   import vibrator from '@system.vibrator'
   export default {
-    private: { gameMatrix: [], movesHistory: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false, autoPlaying: false, autoTimerId: null },
+    private: { gameMatrix: [], movesHistory: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false, autoPlaying: false, autoTimerId: null, moves: 0, timerSeconds: 0, timerId: null },
+    computed: {
+      formattedTime() {
+        const m = Math.floor(this.timerSeconds / 60).toString().padStart(2, '0');
+        const s = (this.timerSeconds % 60).toString().padStart(2, '0');
+        return m + ':' + s;
+      }
+    },
     onInit() { this.restartGame(); },
-    onDestroy() { this.stopAutoRun(); },
+    onDestroy() { this.stopTimer(); this.stopAutoRun(); },
     restartGame() {
-      this.isWin = false; this.showSettings = false; this.movesHistory = []; this.stopAutoRun();
+      this.isWin = false; this.showSettings = false; this.movesHistory = []; this.moves = 0; this.timerSeconds = 0; this.stopTimer(); this.stopAutoRun();
       let arr = Array.from({length: 16}, (v, i) => (i + 1) % 16);
       let emptyIndex = 15;
       for (let k = 0; k < 40; k++) {
@@ -77,21 +103,24 @@
       }
       this.gameMatrix = arr;
     },
+    startTimer() { if (!this.timerId) { this.timerId = setInterval(() => { this.timerSeconds++; }, 1000); } },
+    stopTimer() { if (this.timerId) { clearInterval(this.timerId); this.timerId = null; } },
     moveTile(index) {
       if (this.isWin) return;
       let emptyIndex = this.gameMatrix.indexOf(0);
       if ((Math.abs(Math.floor(index/4) - Math.floor(emptyIndex/4)) + Math.abs((index%4) - (emptyIndex%4))) === 1) {
+        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
         let newBoard = [...this.gameMatrix]; newBoard[emptyIndex] = newBoard[index]; newBoard[index] = 0;
-        this.gameMatrix = newBoard; this.triggerVibe('short'); this.checkWin();
+        this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
       }
     },
     checkWin() {
       for (let i = 0; i < 15; i++) { if (this.gameMatrix[i] !== i + 1) return; }
-      this.isWin = true; this.stopAutoRun(); this.triggerVibe('long');
+      this.isWin = true; this.stopTimer(); this.stopAutoRun(); this.triggerVibe('long');
     },
     toggleAutoRun() {
       if (this.autoPlaying) { this.stopAutoRun(); } else {
-        this.autoPlaying = true;
+        this.autoPlaying = true; this.startTimer();
         this.autoTimerId = setInterval(() => { this.makeAutoMove(); }, 450);
       }
     },
@@ -102,7 +131,7 @@
       let currentEmptyIndex = this.gameMatrix.indexOf(0);
       let newBoard = [...this.gameMatrix];
       newBoard[currentEmptyIndex] = newBoard[targetEmptyIndex]; newBoard[targetEmptyIndex] = 0;
-      this.gameMatrix = newBoard; this.triggerVibe('short'); this.checkWin();
+      this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
     },
     toMenu() { this.showSettings = true; this.triggerVibe('short'); },
     toGame() { this.showSettings = false; this.triggerVibe('short'); },
