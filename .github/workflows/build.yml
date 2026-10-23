@@ -9,6 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      # Полностью отключаем и очищаем старый кэш GitHub Actions перед запуском
+      - name: Clear GitHub Actions Cache
+        run: |
+          echo "Стираем старый кэш сервера..."
+          rm -rf ~/.npm
+          rm -rf node_modules
+          
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -34,14 +42,13 @@ jobs:
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Исправленный package.json с вызовом через npx
+          # 1. Меняем версию на 1.0.1, чтобы Гитхаб принудительно сбросил кэш сборки
           cat << 'EOF' > package.json
           {
-            "name": "com.example.fifteenpuzzle",
-            "version": "1.0.0",
+            "name": "com.soldatov.remaster",
+            "version": "1.0.1",
             "description": "Clean Release Build",
             "scripts": {
-              "build": "npx aiot-toolkit build",
               "release": "npx aiot-toolkit release"
             },
             "dependencies": {},
@@ -51,24 +58,16 @@ jobs:
           }
           EOF
           
-          # 2. Манифест приложения с Webpack-роутером
+          # 2. Манифест полноценного приложения (БЕЗ watch, БЕЗ component флага)
           cat << 'EOF' > src/manifest.json
           {
-            "package": "com.example.fifteenpuzzle",
+            "package": "com.soldatov.remaster",
             "name": "Ремастер",
-            "versionName": "1.0.0",
-            "versionCode": 1,
+            "versionName": "1.0.1",
+            "versionCode": 2,
             "minPlatformVersion": 1000,
             "icon": "/common/icon.png",
             "deviceTypeList": ["band"],
-            "features": [
-              { "name": "system.router" },
-              { "name": "system.vibrator" }
-            ],
-            "config": {
-              "logLevel": "log",
-              "designWidth": 212
-            },
             "router": {
               "entry": "pages/index",
               "pages": {
@@ -80,7 +79,7 @@ jobs:
           }
           EOF
 
-          # 3. UX разметка
+          # 3. UX разметка игры 4х4
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -127,7 +126,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 4. JS логика
+          # 4. JS логика Пятнашек 4х4
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
@@ -186,7 +185,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Скрипты вызова исправлены!"
+          echo "Чистый код версии 1.0.1 подготовлен!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
