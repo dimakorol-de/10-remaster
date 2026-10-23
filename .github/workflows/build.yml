@@ -35,9 +35,20 @@ jobs:
           img.save('src/common/icon.png')
           "
 
-      - name: Inject Safe App Code (True App Architecture)
+      - name: Inject Safe App Code (Fixed Router and App Initializer)
         run: |
-          # 1. Манифест с типом роутера "page" (ОТКЛЮЧАЕТ РЕЖИМ ВИДЖЕТА)
+          # 1. Базовый инициализатор приложения в корне папки src (ОБЯЗАТЕЛЕН ДЛЯ WEBPACK)
+          cat << 'EOF' > src/app.ux
+          <script>
+            export default {
+              onCreate() {
+                console.log("Приложение запущено!");
+              }
+            }
+          </script>
+          EOF
+
+          # 2. Манифест приложения с правильным Webpack-роутером
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen",
@@ -52,7 +63,6 @@ jobs:
               "designWidth": 212
             },
             "router": {
-              "type": "page",
               "entry": "pages/index",
               "pages": {
                 "pages/index": {
@@ -63,7 +73,7 @@ jobs:
           }
           EOF
 
-          # 2. Монолитный код игры 4х4
+          # 3. UX разметка игры 4х4
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
@@ -118,7 +128,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Код полноценного монолитного приложения зашит!"
+          echo "Вся структура успешно воссоздана!"
 
       - name: Install and Build (Release Mode)
         run: |
