@@ -1,39 +1,6 @@
-name: Build RPK
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          
-      - name: Generate Icon (icon.png)
-        run: |
-          mkdir -p src/common
-          pip install Pillow
-          python3 -c "
-          from PIL import Image, ImageDraw
-          img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
-          draw = ImageDraw.Draw(img)
-          mask = Image.new('L', (192, 192), 0)
-          mask_draw = ImageDraw.Draw(mask)
-          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
-          img.putalpha(mask)
-          draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
-          img.save('src/common/icon.png')
-          "
-
       - name: Inject Monolithic Code (No index.js)
         run: |
           mkdir -p src/pages/index
-          
-          # Удаляем старый файл index.js, чтобы его вообще не было в сборке!
           rm -f src/pages/index/index.js
           
           # 1. Записываем манифест строго под com.example.fifteenpuzzle
@@ -41,14 +8,15 @@ jobs:
           {
             "package": "com.example.fifteenpuzzle",
             "name": "Ремастер",
-            "versionName": "1.0.0",
-            "versionCode": 1,
+            "versionName": "1.2.0",
+            "versionCode": 3,
             "minPlatformVersion": 1000,
             "icon": "/common/icon.png",
             "deviceTypeList": ["band", "watch"],
             "features": [
               { "name": "system.router" },
-              { "name": "system.vibrator" }
+              { "name": "system.vibrator" },
+              { "name": "system.storage" }
             ],
             "config": {
               "logLevel": "log",
@@ -65,29 +33,53 @@ jobs:
           }
           EOF
 
-          # 2. Записываем МОНОЛИТНЫЙ index.ux (Логика и разметка строго вместе!)
+          # 2. Записываем МОНОЛИТНЫЙ index.ux с УЛУЧШЕННЫМИ АНИМАЦИЯМИ
           cat << 'EOF' > src/pages/index/index.ux
           <template>
-            <div class="container" style="background-color: {{ currentTheme.bg }};">
-              <div class="board">
-                <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper">
+            <div class="container {{ isWon ? 'victory-bg-anim' : '' }}" style="background-color: {{ currentTheme.bg }};">
+              <!-- Счётчики игры -->
+              <div class="stats-row">
+                <text class="stats-text" style="color: {{ currentTheme.text }};">⏱ {{ formattedTime }}</text>
+                <text class="stats-text" style="color: {{ currentTheme.text }};">👣 {{ moves }}</text>
+              </div>
+
+              <!-- Игровое поле -->
+              <div class="board" style="width: {{ boardSizePx }}px;">
+                <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: {{ cellMarginPx }}px;">
                   <input 
                     if="{{item !== 0}}" 
                     type="button" 
-                    class="cell {{animClass}}" 
-                    style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }};"
+                    class="cell {{ animClass }} {{ isWon ? 'victory-tile-anim' : '' }}" 
+                    style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
                     value="{{item}}" 
                     onclick="moveTile(index)"
                   />
                 </div>
               </div>
+
+              <!-- Экран Победы -->
+              <div if="{{ isWon }}" class="victory-block">
+                <text class="victory-title">ПОБЕДА!</text>
+                <text class="victory-sub" style="color: {{ currentTheme.text }};">Рекорд: {{ bestMoves }} ходов / {{ bestTime }}с</text>
+              </div>
+
+              <!-- Управление Автоходом -->
+              <div class="menu">
+                <input type="button" class="btn btn-action {{ isAnim ? 'btn-press-anim' : '' }}" value="{{ autoPlaying ? 'Стоп Автоход' : 'Запустить Автоход' }}" onclick="toggleAutoRun" />
+                <input type="button" class="btn btn-action {{ isAnim ? 'btn-press-anim' : '' }}" value="💡 Подсказать ход" onclick="makeSingleHint" />
+                <input type="button" class="btn btn-reset {{ isAnim ? 'btn-press-anim' : '' }}" value="🔄 Новая игра" onclick="resetGame" />
+              </div>
+
+              <!-- Настройки -->
               <div class="menu">
                 <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
-                <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
+                <input type="button" class="btn {{ isAnim ? 'btn-press-anim' : '' }}" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
+                <input type="button" class="btn {{ isAnim ? 'btn-press-anim' : '' }}" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+                <input type="button" class="btn {{ isAnim ? 'btn-press-anim' : '' }}" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyle === 0 ? 'Стиль 1' : 'Стиль 2' }}" onclick="toggleColor" />
+                <input type="button" class="btn {{ isAnim ? 'btn-press-anim' : '' }}" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Анимация: {{ isAnim ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleAnim" />
+                <input type="button" class="btn {{ isAnim ? 'btn-press-anim' : '' }}" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Вибро: {{ isVib ? 'ВКЛ' : 'ВЫКЛ' }}" onclick="toggleVib" />
               </div>
+
               <div class="credits">
                 <text class="credits-label">Создал</text>
                 <text class="credits-name">Александр Солдатов</text>
@@ -96,30 +88,77 @@ jobs:
           </template>
 
           <style>
-            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 30px; padding-bottom: 30px; }
-            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
-            .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
-            .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; }
-            .anim { transition: all 0.15s ease-in-out; }
+            .container { flex-direction: column; align-items: center; width: 212px; padding-top: 35px; padding-bottom: 35px; transition: background-color 0.4s ease; }
+            .stats-row { width: 184px; justify-content: space-between; margin-bottom: 10px; padding: 0 5px; }
+            .stats-text { font-size: 14px; font-weight: bold; }
+            .board { flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+            .cell-wrapper { justify-content: center; align-items: center; }
+            
+            /* Новая плавная пружинная анимация для хода плашек (Эффект упругости) */
+            .cell { border-radius: 8px; font-weight: bold; }
+            .anim { transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease; }
+            
+            /* Анимация победного мерцания плашек */
+            .victory-tile-anim { animation-name: pulse-gold; animation-duration: 1.5s; animation-iteration-count: infinite; }
+            @keyframes pulse-gold {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.04); background-color: #FFD700; color: #000000; }
+              100% { transform: scale(1); }
+            }
+
+            /* Мягкий победный градиентный фон */
+            .victory-bg-anim { animation-name: victory-bg; animation-duration: 3s; animation-iteration-count: 1; }
+            @keyframes victory-bg {
+              0% { background-color: #000000; }
+              50% { background-color: #1c3d1c; }
+              100% { background-color: #000000; }
+            }
+            
+            .victory-block { flex-direction: column; align-items: center; margin-bottom: 15px; animation-name: fade-in; animation-duration: 0.5s; }
+            @keyframes fade-in {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .victory-title { font-size: 22px; font-weight: bold; color: #34C759; }
+            .victory-sub { font-size: 12px; margin-top: 2px; }
+
             .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
-            .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-            .btn { width: 170px; height: 35px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+            .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; margin-top: 5px; }
+            
+            /* Плавный отклик кнопок интерфейса при клике */
+            .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; transition: background-color 0.2s, transform 0.1s; }
+            .btn-press-anim:active { transform: scale(0.95); opacity: 0.85; }
+            
+            .btn-action { background-color: #007AFF; color: #FFFFFF; font-weight: bold; }
+            .btn-reset { background-color: #FF3B30; color: #FFFFFF; }
+
             .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
-            .credits-label { font-size: 12px; color: #8E8E93; }
-            .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
+            .credits-label { font-size: 11px; color: #8E8E93; }
+            .credits-name { font-size: 14px; color: #FFD700; font-weight: bold; margin-top: 2px; }
           </style>
 
           <script>
             import vibrator from '@system.vibrator'
+            import storage from '@system.storage'
             
             export default {
               private: {
-                gameMatrix:,
+                gameMatrix: [],
+                gridSize: 4,
                 emptyIndex: 15,
+                moves: 0,
+                timerSeconds: 0,
+                timerId: null,
                 isDark: true,
                 tileStyle: 0,
                 isAnim: true,
                 isVib: true,
+                isWon: false,
+                autoPlaying: false,
+                autoTimerId: null,
+                bestMoves: '-',
+                bestTime: '-',
                 themes: {
                   dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
                   light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
@@ -132,56 +171,181 @@ jobs:
               computed: {
                 currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
                 currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
-                animClass() { return this.isAnim ? 'anim' : ''; }
-              },
-              onCreate() {
-                this.shuffle();
-              },
-              shuffle() {
-                let arr = [...this.gameMatrix];
-                for (let i = arr.length - 1; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-                }
-                this.gameMatrix = arr;
-                this.emptyIndex = arr.indexOf(0);
-              },
-              moveTile(index) {
-                const r1 = Math.floor(index / 4), c1 = index % 4;
-                const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
-                if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                  let newBoard = [...this.gameMatrix];
-                  newBoard[this.emptyIndex] = newBoard[index];
-                  newBoard[index] = 0;
-                  this.gameMatrix = newBoard;
-                  this.emptyIndex = index;
-                  this.triggerVibe();
-                }
-              },
-              triggerVibe() {
-                if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
-              },
-              toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
-              toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
-              toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
-              toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
-            }
-          </script>
-          EOF
-          echo "Монолитный UX код без index.js успешно внедрен!"
+                animClass() { return this.isAnim ? 'anim' : ''; },
+                formattedTime() {
+                  const m = Math.floor(this.timerSeconds / 60).toString().padStart(2, '0');
+                  const s = (this.timerSeconds % 60).toString().padStart(2, '0');
+                  return `${m}:${s}`;
+                },
+                boardSizePx() { return 184; },
+                cellMarginPx() { return 1.5; },
+                cellSizePx() {
+                  if (this.gridSize === 3) return 58;
+                  if (this.gridSize === 5) return 33;
+                  return 43;
+                },
+                fontSizePx() {
+                  if (this.gridSize === 3) return 24;if (this.gridSize === 5) return 14;
+return 18;
+}
+},
+onCreate() {
+this.loadRecords();
+this.resetGame();
+},
+onDestroy() {
+this.stopTimer();
+this.stopAutoRun();
+},
+resetGame() {
+this.stopTimer();
+this.stopAutoRun();
+this.moves = 0;
+this.timerSeconds = 0;
+this.isWon = false;
+let totalCells = this.gridSize * this.gridSize;
+let arr = [];
+for (let i = 1; i < totalCells; i++) arr.push(i);
+arr.push(0);
+do {
+for (let i = arr.length - 2; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+}
+} while (!this.isSolvable(arr));
+this.gameMatrix = arr;
+this.emptyIndex = arr.indexOf(0);
+},
+isSolvable(arr) {
+let inversions = 0;
+let len = arr.length;
+for (let i = 0; i < len; i++) {
+if (arr[i] === 0) continue;
+for (let j = i + 1; j < len; j++) {
+if (arr[j] !== 0 && arr[i] > arr[j]) inversions++;
+}
+}
+if (this.gridSize % 2 !== 0) {
+return inversions % 2 === 0;
+} else {
+let emptyRowFromBottom = this.gridSize - Math.floor(arr.indexOf(0) / this.gridSize);
+return (emptyRowFromBottom % 2 === 0) === (inversions % 2 !== 0);
+}
+},
+startTimer() {
+if (!this.timerId) {
+this.timerId = setInterval(() => {
+this.timerSeconds++;
+}, 1000);
+}
+},
+stopTimer() {
+if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+},
+moveTile(index) {
+if (this.isWon) return;
+const r1 = Math.floor(index / this.gridSize), c1 = index % this.gridSize;
+const r2 = Math.floor(this.emptyIndex / this.gridSize), c2 = this.emptyIndex % this.gridSize;
+if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+if (this.moves === 0 && !this.autoPlaying) this.startTimer();
+let newBoard = [...this.gameMatrix];
+newBoard[this.emptyIndex] = newBoard[index];
+newBoard[index] = 0;
+this.gameMatrix = newBoard;
+this.emptyIndex = index;
+this.moves++;
+this.triggerVibe('short');
+this.checkWin();
+}
+},
+checkWin() {
+let totalCells = this.gridSize * this.gridSize;
+for (let i = 0; i < totalCells - 1; i++) {
+if (this.gameMatrix[i] !== i + 1) return;
+}
+this.isWon = true;
+this.stopTimer();
+this.stopAutoRun();
+this.triggerVibe('long');
+this.saveRecord();
+},
+toggleAutoRun() {
+if (this.autoPlaying) {
+this.stopAutoRun();
+} else {
+this.autoPlaying = true;
+this.startTimer();
+this.autoTimerId = setInterval(() => {
+this.makeSingleHint();
+if (this.isWon) this.stopAutoRun();
+}, 450); // Увеличили интервал до 450мс под физику новой пружинной анимации
+}
+},
+stopAutoRun() {
+this.autoPlaying = false;
+if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; }
+},
+makeSingleHint() {
+const possibleMoves = [];
+const r2 = Math.floor(this.emptyIndex / this.gridSize);
+const c2 = this.emptyIndex % this.gridSize;
+const targets = [
+{ r: r2 - 1, c: c2 }, { r: r2 + 1, c: c2 },
+{ r: r2, c: c2 - 1 }, { r: r2, c: c2 + 1 }
+];
+targets.forEach(t => {
+if (t.r >= 0 && t.r < this.gridSize && t.c >= 0 && t.c < this.gridSize) {
+possibleMoves.push(t.r * this.gridSize + t.c);
+}
+});
+if (possibleMoves.length > 0) {
+const targetIndex = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+this.moveTile(targetIndex);
+}
+},
+cycleGridSize() {
+this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1;
+this.loadRecords();
+this.resetGame();
+},
+triggerVibe(mode) {
+if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} }
+},
+toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
+toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe('short'); },
+toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe('short'); },
+toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
+saveRecord() {
+storage.get({
+key: best_moves_${this.gridSize},
+success: (data) => {
+if (!data || this.moves < parseInt(data)) {
+storage.set({ key: best_moves_${this.gridSize}, value: this.moves.toString() });
+this.bestMoves = this.moves;
+}
+}
+});
+storage.get({
+key: best_time_${this.gridSize},
+success: (data) => {
+if (!data || this.timerSeconds < parseInt(data)) {
+storage.set({ key: best_time_${this.gridSize}, value: this.timerSeconds.toString() });
+this.bestTime = this.timerSeconds;
+}
+}
+});
+},
+loadRecords() {
+storage.get({
+key: best_moves_${this.gridSize},
+success: (data) => { this.bestMoves = data || '-'; }
+});
+storage.get({
+key: best_time_${this.gridSize},
+success: (data) => { this.bestTime = data || '-'; }
+});
+}
+}
 
-      - name: Install and Build (10-Year Certificate Release Mode)
-        run: |
-          npm install
-          mkdir -p sign/release
-          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
-          npx aiot release
-          mkdir -p dist_output
-          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
-          
-      - name: Upload RPK
-        uses: actions/upload-artifact@v4
-        with:
-          name: rpk-build
-          path: dist_output/remaster.rpk
-          if-no-files-found: error
+EOF
+echo "Монолитный UX код с улучшенной анимацией 60 Гц успешно внедрен!"
