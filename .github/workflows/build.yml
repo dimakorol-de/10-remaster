@@ -37,7 +37,7 @@ jobs:
 
       - name: Inject Safe App Code (Strict Guide Compliance)
         run: |
-          # 1. package.json один в один по инструкции
+          # 1. package.json по инструкции
           cat << 'EOF' > package.json
           {
             "name": "myapp",
@@ -53,7 +53,7 @@ jobs:
           }
           EOF
           
-          # 2. src/app.ux один в один по инструкции
+          # 2. src/app.ux по инструкции
           cat << 'EOF' > src/app.ux
           <script>
           export default {
@@ -91,11 +91,13 @@ jobs:
           }
           EOF
 
-          # 4. Монолитный код игры 4х4 с ультра-компактной версткой
+          # 4. Монолитный код игры 4х4 с копирайтом ВНУТРИ меню настроек
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
               <text class="title">Пятнашки 4x4</text>
+              
+              <!-- ИГРОВОЕ ПОЛЕ -->
               <div class="board">
                 <div for="{{gameMatrix}}" class="cell-wrapper">
                   <input 
@@ -107,36 +109,37 @@ jobs:
                   />
                 </div>
               </div>
+              
+              <!-- НАСТРОЙКИ С КОПИРАЙТОМ ВНУТРИ -->
               <div class="menu">
                 <text class="menu-title">Настройки</text>
                 <input type="button" class="btn" value="Тема: {{isDark ? 'Темная' : 'Светлая'}}" onclick="toggleTheme" />
                 <input type="button" class="btn" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
                 <input type="button" class="btn" value="Вибро: {{isVib ? 'ВКЛ' : 'ВЫКЛ'}}" onclick="toggleVib" />
-              </div>
-              <div class="credits">
-                <text class="credits-label">Создал</text>
-                <text class="credits-name">Александр Солдатов</text>
+                
+                <!-- Копирайт перенесен сюда, как часть меню -->
+                <div class="credits">
+                  <text class="credits-label">Создал</text>
+                  <text class="credits-name">Александр Солдатов</text>
+                </div>
               </div>
             </div>
           </template>
 
           <style>
-            /* Сжали вертикальные размеры специально под экран Mi Band 10 */
             .container { flex-direction: column; align-items: center; width: 212px; background-color: #000000; padding-top: 15px; padding-bottom: 15px; }
             .title { font-size: 18px; color: #FFFFFF; margin-bottom: 8px; font-weight: bold; }
             
-            /* Игровое поле */
             .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
             .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; background-color: #007AFF; color: #FFFFFF; }
             
-            /* Компактное меню настроек */
             .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 5px; }
             .menu-title { font-size: 15px; color: #FFFFFF; font-weight: bold; margin-bottom: 4px; }
             .btn { width: 170px; height: 28px; border-radius: 5px; font-size: 13px; margin-bottom: 5px; background-color: #222222; color: #FFFFFF; }
             
-            /* Блок копирайта автора */
-            .credits { flex-direction: column; align-items: center; margin-top: 10px; width: 180px; }
+            /* Сжатый аккуратный копирайт внутри блока меню */
+            .credits { flex-direction: column; align-items: center; margin-top: 4px; width: 180px; }
             .credits-label { font-size: 11px; color: #8E8E93; }
             .credits-name { font-size: 13px; color: #FFD700; font-weight: bold; margin-top: 1px; }
           </style>
@@ -146,13 +149,17 @@ jobs:
             
             export default {
               private: {
-                gameMatrix:,
+                gameMatrix: [],
                 isDark: true,
                 tileStyle: 0,
                 isVib: true
               },
               onInit() {
-                let arr = [...this.gameMatrix];
+                let arr = [];
+                for (let i = 1; i <= 15; i++) {
+                  arr.push(i);
+                }
+                arr.push(0);
                 arr.sort(function() { return Math.random() - 0.5; });
                 this.gameMatrix = arr;
               },
@@ -178,7 +185,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Код с ультра-компактной версткой зашит!"
+          echo "Код со стабильной инициализацией и копирайтом в меню зашит!"
 
       - name: Install and Build (Strict Release Mode)
         run: |
