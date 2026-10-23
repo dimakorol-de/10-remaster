@@ -34,7 +34,7 @@ jobs:
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Манифест полноценного приложения (БЕЗ component сборки)
+          # 1. Манифест приложения с роутером "page" (УБРАН component сборщик)
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -56,7 +56,7 @@ jobs:
               "entry": "pages/index",
               "pages": {
                 "pages/index": {
-                  "component": "index"
+                  "page": "index"
                 }
               }
             }
@@ -169,7 +169,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Код переведен в режим полноценного приложения!"
+          echo "Принудительный перевод в полноценное приложение выполнен!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
