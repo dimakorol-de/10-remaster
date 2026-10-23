@@ -14,7 +14,7 @@ jobs:
         run: |
           echo "Полный сброс структуры..."
           rm -rf ~/.npm node_modules dist build src
-          mkdir -p src/common
+          mkdir -p src/common src/pages/index
           
       - uses: actions/setup-node@v4
         with:
@@ -37,7 +37,7 @@ jobs:
 
       - name: Inject Safe App Code (True App Architecture)
         run: |
-          # 1. Базовый манифест полноценного приложения без сложного роутера страниц
+          # 1. Манифест с типом роутера "page" (ОТКЛЮЧАЕТ РЕЖИМ ВИДЖЕТА)
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen",
@@ -50,12 +50,21 @@ jobs:
             "config": {
               "logLevel": "log",
               "designWidth": 212
+            },
+            "router": {
+              "type": "page",
+              "entry": "pages/index",
+              "pages": {
+                "pages/index": {
+                  "component": "index"
+                }
+              }
             }
           }
           EOF
 
-          # 2. Создаем монолитный главный экран app.ux прямо в корне src
-          cat << 'EOF' > src/app.ux
+          # 2. Монолитный код игры 4х4
+          cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
               <text class="title">Пятнашки 4x4</text>
