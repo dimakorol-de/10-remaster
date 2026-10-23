@@ -12,16 +12,16 @@
 
     <!-- ЭКРАН ИГРЫ -->
     <div if="{{!showSettings && !isWin}}" class="box">
-      <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки 4x4</text>
+      <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки {{gridSize}}x{{gridSize}}</text>
       
       <!-- Игровое поле -->
-      <div class="board">
-        <div for="{{gameMatrix}}" class="cell-wrapper">
-          <input if="{{$item !== 0}}" type="button" class="cell" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="{{$item}}" onclick="moveTile($idx)" />
+      <div class="board" style="width: 184px;">
+        <div for="{{(idx, item) in gameMatrix}}" class="cell-wrapper" style="width: {{cellSizePx}}px; height: {{cellSizePx}}px; margin: 1.5px;">
+          <input if="{{item !== 0}}" type="button" class="cell" style="background-color: {{currentTileColor}}; color: {{isDark ? '#FFFFFF' : '#000000'}}; width: {{cellSizePx}}px; height: {{cellSizePx}}px; font-size: {{fontSizePx}}px;" value="{{item}}" onclick="moveTile(idx)" />
         </div>
       </div>
 
-      <!-- ТЕКСТОВЫЕ СЧЕТЧИКИ ТЕПЕРЬ ПОД ПОЛЕМ -->
+      <!-- ТЕКСТОВЫЕ СЧЕТЧИКИ ПОД ПОЛЕМ -->
       <div class="stats-row">
         <text class="stats-text" style="color: {{isDark ? '#8E8E93' : '#666666'}};">Время: {{formattedTime}}</text>
         <text class="stats-text" style="color: {{isDark ? '#8E8E93' : '#666666'}};">Ходов: {{moves}}</text>
@@ -37,9 +37,10 @@
     <!-- ЭКРАН НАСТРОЕК -->
     <div if="{{showSettings && !isWin}}" class="box">
       <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Настройки</text>
-      <input type="button" class="btn" value="Тема: {{isDark ? '● Темная' : '○ Светлая'}}" onclick="toggleTheme" />
-      <input type="button" class="btn" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
-      <input type="button" class="btn" value="Вибро: {{isVib ? '☑ ВКЛ' : '☒ ВЫКЛ'}}" onclick="toggleVib" />
+      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Режим: {{gridSize}}x{{gridSize}}" onclick="cycleGridSize" />
+      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Тема: {{isDark ? '● Темная' : '○ Светлая'}}" onclick="toggleTheme" />
+      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : (tileStyle === 1 ? 'Стиль 2' : 'Киберпанк 💜')}}" onclick="toggleColor" />
+      <input type="button" class="btn" style="background-color: {{isDark ? '#222222' : '#E5E5EA'}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="Вибро: {{isVib ? '☑ ВКЛ' : '☒ ВЫКЛ'}}" onclick="toggleVib" />
       <input type="button" class="btn" style="background-color: #007AFF; color: #FFFFFF;" value="◀ Назад" onclick="toGame" />
       <div class="credits"><text class="c-label">Создал</text><text class="c-name">Александр Солдатов</text></div>
     </div>
@@ -50,11 +51,10 @@
   .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding: 15px 0; }
   .box { flex-direction: column; align-items: center; width: 212px; }
   .title { font-size: 18px; margin-bottom: 12px; font-weight: bold; }
-  .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
-  .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
-  .cell { width: 43px; height: 43px; border-radius: 8px; font-size: 18px; font-weight: bold; }
+  .board { flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+  .cell-wrapper { justify-content: center; align-items: center; }
+  .cell { border-radius: 8px; font-weight: bold; }
   
-  /* Стили для аккуратной строчки счётчиков под полем */
   .stats-row { width: 184px; justify-content: space-between; margin-top: 2px; margin-bottom: 12px; padding: 0 4px; }
   .stats-text { font-size: 14px; font-weight: 500; }
   
@@ -75,27 +75,39 @@
 <script>
   import vibrator from '@system.vibrator'
   export default {
-    private: { gameMatrix: [], movesHistory: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false, autoPlaying: false, autoTimerId: null, moves: 0, timerSeconds: 0, timerId: null },
+    private: { 
+      gameMatrix: [], movesHistory: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false, 
+      autoPlaying: false, autoTimerId: null, moves: 0, timerSeconds: 0, timerId: null, gridSize: 4 
+    },
     computed: {
       formattedTime() {
         const m = Math.floor(this.timerSeconds / 60).toString().padStart(2, '0');
         const s = (this.timerSeconds % 60).toString().padStart(2, '0');
         return m + ':' + s;
+      },
+      cellSizePx() { if (this.gridSize === 3) return 58; if (this.gridSize === 5) return 33; return 43; },
+      fontSizePx() { if (this.gridSize === 3) return 26; if (this.gridSize === 5) return 16; return 20; },
+      currentTileColor() {
+        if (this.tileStyle === 0) return this.isDark ? '#1C1C1E' : '#E5E5EA'; // Стиль 1
+        if (this.tileStyle === 1) return this.isDark ? '#007AFF' : '#34C759'; // Стиль 2
+        return this.isDark ? '#AF52DE' : '#FF2D55'; // Стиль 3: Киберпанк (Фиолетовый в темной, Розовый в светлой)
       }
     },
     onInit() { this.restartGame(); },
     onDestroy() { this.stopTimer(); this.stopAutoRun(); },
     restartGame() {
       this.isWin = false; this.showSettings = false; this.movesHistory = []; this.moves = 0; this.timerSeconds = 0; this.stopTimer(); this.stopAutoRun();
-      let arr = Array.from({length: 16}, (v, i) => (i + 1) % 16);
-      let emptyIndex = 15;
-      for (let k = 0; k < 40; k++) {
-        let r = Math.floor(emptyIndex / 4), c = emptyIndex % 4;
+      let totalCells = this.gridSize * this.gridSize;
+      let arr = Array.from({length: totalCells}, (v, i) => (i + 1) % totalCells);
+      let emptyIndex = totalCells - 1;
+      let shuffleSteps = this.gridSize === 3 ? 20 : (this.gridSize === 5 ? 60 : 40);
+      for (let k = 0; k < shuffleSteps; k++) {
+        let r = Math.floor(emptyIndex / this.gridSize), c = emptyIndex % this.gridSize;
         let validMoves = [];
-        if (r > 0) validMoves.push(emptyIndex - 4);
-        if (r < 3) validMoves.push(emptyIndex + 4);
+        if (r > 0) validMoves.push(emptyIndex - this.gridSize);
+        if (r < this.gridSize - 1) validMoves.push(emptyIndex + this.gridSize);
         if (c > 0) validMoves.push(emptyIndex - 1);
-        if (c < 3) validMoves.push(emptyIndex + 1);
+        if (c < this.gridSize - 1) validMoves.push(emptyIndex + 1);
         let nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
         arr[emptyIndex] = arr[nextMove]; arr[nextMove] = 0;
         this.movesHistory.push(emptyIndex);
@@ -108,14 +120,15 @@
     moveTile(index) {
       if (this.isWin) return;
       let emptyIndex = this.gameMatrix.indexOf(0);
-      if ((Math.abs(Math.floor(index/4) - Math.floor(emptyIndex/4)) + Math.abs((index%4) - (emptyIndex%4))) === 1) {
+      if ((Math.abs(Math.floor(index/this.gridSize) - Math.floor(emptyIndex/this.gridSize)) + Math.abs((index%this.gridSize) - (emptyIndex%this.gridSize))) === 1) {
         if (this.moves === 0 && !this.autoPlaying) this.startTimer();
         let newBoard = [...this.gameMatrix]; newBoard[emptyIndex] = newBoard[index]; newBoard[index] = 0;
         this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
       }
     },
     checkWin() {
-      for (let i = 0; i < 15; i++) { if (this.gameMatrix[i] !== i + 1) return; }
+      let totalCells = this.gridSize * this.gridSize;
+      for (let i = 0; i < totalCells - 1; i++) { if (this.gameMatrix[i] !== i + 1) return; }
       this.isWin = true; this.stopTimer(); this.stopAutoRun(); this.triggerVibe('long');
     },
     toggleAutoRun() {
@@ -133,10 +146,11 @@
       newBoard[currentEmptyIndex] = newBoard[targetEmptyIndex]; newBoard[targetEmptyIndex] = 0;
       this.gameMatrix = newBoard; this.moves++; this.triggerVibe('short'); this.checkWin();
     },
+    cycleGridSize() { this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1; this.restartGame(); },
     toMenu() { this.showSettings = true; this.triggerVibe('short'); },
     toGame() { this.showSettings = false; this.triggerVibe('short'); },
     toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
-    toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe('short'); },
+    toggleColor() { this.tileStyle = this.tileStyle === 2 ? 0 : this.tileStyle + 1; this.triggerVibe('short'); },
     toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
     triggerVibe(mode) { if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} } }
   }
