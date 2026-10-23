@@ -9,19 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Hard Reset Cache
-        run: |
-          echo "Очистка структуры..."
-          rm -rf ~/.npm node_modules dist build src package.json
-          mkdir -p src/common src/pages/index
-          
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Generate Icon (logo.png)
+      - name: Generate Icon
         run: |
+          mkdir -p src/common src/pages/index
           pip install Pillow
           python3 -c "
           from PIL import Image, ImageDraw
@@ -35,9 +29,8 @@ jobs:
           img.save('src/common/logo.png')
           "
 
-      - name: Inject Project Manifest and App Entry
+      - name: Inject Configuration
         run: |
-          # 1. Создаем package.json по инструкции
           cat << 'EOF' > package.json
           {
             "name": "myapp",
@@ -48,16 +41,10 @@ jobs:
           }
           EOF
           
-          # 2. Создаем src/app.ux по инструкции
           cat << 'EOF' > src/app.ux
-          <script>
-          export default {
-            onCreate() {}
-          }
-          </script>
+          <script>export default { onCreate() {} }</script>
           EOF
           
-          # 3. Создаем manifest.json с поддержкой band и watch
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -74,182 +61,83 @@ jobs:
             "config": { "logLevel": "log", "designWidth": 212 },
             "router": {
               "entry": "pages/index",
-              "pages": {
-                "pages/index": { "component": "index" }
-              }
+              "pages": { "pages/index": { "component": "index" } }
             }
           }
           EOF
 
-      - name: Inject UI Layout (index.ux)
+      - name: Inject Short UX Game File
         run: |
-          # 4. Записываем чистый интерфейс без вложенных CSS-стилей
           cat << 'EOF' > src/pages/index/index.ux
           <template>
-            <div class="container {{themeClass}}">
-              
-              <!-- ЭКРАН ИГРЫ -->
-              <div if="{{!showSettings}}" class="game-screen">
-                <text class="title {{textThemeClass}}">Пятнашки 4x4</text>
+            <div class="container" style="background-color: {{isDark ? '#000000' : '#F2F2F7'}};">
+              <div if="{{!showSettings}}" class="box">
+                <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки 4x4</text>
                 <div class="board">
                   <div for="{{gameMatrix}}" class="cell-wrapper">
-                    <input 
-                      if="{{$item !== 0}}" 
-                      type="button" 
-                      class="cell {{tileClass}}" 
-                      value="{{$item}}" 
-                      onclick="moveTile($idx)"
-                    />
+                    <input if="{{$item !== 0}}" type="button" class="cell" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="{{$item}}" onclick="moveTile($idx)" />
                   </div>
                 </div>
-                <input type="button" class="nav-btn {{navBtnThemeClass}}" value="⚙ Настройки" onclick="openSettings" />
+                <input type="button" class="btn" value="⚙ Настройки" onclick="toMenu" />
               </div>
-              
-              <!-- ЭКРАН НАСТРОЕК (iOS СТИЛЬ) -->
-              <div if="{{showSettings}}" class="settings-screen">
-                <text class="menu-title {{textThemeClass}}">Настройки</text>
-                
-                <div class="setting-row {{rowThemeClass}}" onclick="toggleTheme">
-                  <text class="row-label {{textThemeClass}}">Темная тема</text>
-                  <div class="ios-switch {{isDark ? 'switch-on-blue' : 'switch-off'}}">
-                    <div class="ios-thumb"></div>
-                  </div>
-                </div>
-                
-                <div class="setting-row {{rowThemeClass}}" onclick="toggleColor">
-                  <text class="row-label {{textThemeClass}}">Яркие плитки</text>
-                  <div class="ios-switch {{tileStyle === 1 ? 'switch-on-blue' : 'switch-off'}}">
-                    <div class="ios-thumb"></div>
-                  </div>
-                </div>
-
-                <div class="setting-row {{rowThemeClass}}" onclick="toggleVib">
-                  <text class="row-label {{textThemeClass}}">Виброотклик</text>
-                  <div class="ios-switch {{isVib ? 'switch-on-green' : 'switch-off'}}">
-                    <div class="ios-thumb"></div>
-                  </div>
-                </div>
-
-                <input type="button" class="nav-btn {{navBtnThemeClass}} back-btn" value="◀ Назад к игре" onclick="closeSettings" />
-                
-                <div class="credits">
-                  <text class="credits-label">Создал</text>
-                  <text class="credits-name">Александр Солдатов</text>
-                </div>
+              <div if="{{showSettings}}" class="box">
+                <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Настройки</text>
+                <input type="button" class="btn" value="Тема: {{isDark ? '● Темная' : '○ Светлая'}}" onclick="toggleTheme" />
+                <input type="button" class="btn" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
+                <input type="button" class="btn" value="Вибро: {{isVib ? '☑ ВКЛ' : '☒ ВЫКЛ'}}" onclick="toggleVib" />
+                <input type="button" class="btn" style="background-color: #007AFF; color: #FFFFFF;" value="◀ Назад" onclick="toGame" />
+                <div class="credits"><text class="c-label">Создал</text><text class="c-name">Александр Солдатов</text></div>
               </div>
-
             </div>
           </template>
-
           <style>
-            .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding-top: 15px; padding-bottom: 15px; }
-            .game-screen { flex-direction: column; align-items: center; width: 212px; }
-            .settings-screen { flex-direction: column; align-items: center; width: 212px; padding-left: 10px; padding-right: 10px; }
-            .theme-dark { background-color: #000000; }
-            .theme-light { background-color: #F2F2F7; }
-            .text-dark { color: #FFFFFF; }
-            .text-light { color: #000000; }
+            .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding: 15px 0; }
+            .box { flex-direction: column; align-items: center; width: 212px; }
             .title { font-size: 18px; margin-bottom: 12px; font-weight: bold; }
-            .menu-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 25px; }
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
             .cell { width: 43px; height: 43px; border-radius: 8px; font-size: 18px; font-weight: bold; }
-            .tile-dark-s0 { background-color: #1C1C1E; color: #FFFFFF; }
-            .tile-dark-s1 { background-color: #007AFF; color: #FFFFFF; }
-            .tile-light-s0 { background-color: #E5E5EA; color: #000000; }
-            .tile-light-s1 { background-color: #34C759; color: #FFFFFF; }
-            .nav-btn { width: 160px; height: 32px; border-radius: 8px; font-size: 14px; font-weight: bold; }
-            .nav-btn-dark { background-color: #222222; color: #007AFF; }
-            .nav-btn-light { background-color: #FFFFFF; color: #007AFF; border: 1px solid #D1D1D6; }
-            .back-btn { margin-top: 15px; }
-            .setting-row { width: 190px; height: 40px; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-left: 8px; padding-right: 8px; border-radius: 8px; }
-            .row-dark { background-color: #1C1C1E; }
-            .row-light { background-color: #FFFFFF; }
-            .row-label { font-size: 14px; font-weight: 500; }
-            .ios-switch { width: 42px; height: 24px; border-radius: 12px; align-items: center; padding-left: 2px; padding-right: 2px; }
-            .switch-off { background-color: #39393D; }
-            .switch-on-green { background-color: #34C759; }
-            .switch-on-blue { background-color: #007AFF; }
-            .ios-thumb { width: 20px; height: 20px; border-radius: 10px; background-color: #FFFFFF; }
-            .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 190px; }
-            .credits-label { font-size: 11px; color: #8E8E93; }
-            .credits-name { font-size: 13px; color: #FFD700; font-weight: bold; margin-top: 1px; }
+            .btn { width: 170px; height: 32px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; background-color: #222222; color: #FFFFFF; }
+            .credits { flex-direction: column; align-items: center; margin-top: 20px; }
+            .c-label { font-size: 11px; color: #8E8E93; }
+            .c-name { font-size: 13px; color: #FFD700; font-weight: bold; }
           </style>
-
-          <script src="./index.js"></script>
+          <script>
+            import vibrator from '@system.vibrator'
+            export default {
+              private: { gameMatrix: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false },
+              onInit() {
+                let arr = []; for (let i = 1; i <= 15; i++) { arr.push(i); } arr.push(0);
+                arr.sort(function() { return Math.random() - 0.5; }); this.gameMatrix = arr;
+              },
+              moveTile(index) {
+                let emptyIndex = this.gameMatrix.indexOf(0);
+                if ((Math.abs(Math.floor(index/4) - Math.floor(emptyIndex/4)) + Math.abs((index%4) - (emptyIndex%4))) === 1) {
+                  let newBoard = [...this.gameMatrix]; newBoard[emptyIndex] = newBoard[index]; newBoard[index] = 0;
+                  this.gameMatrix = newBoard; if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e) {} }
+                }
+              },
+              toMenu() { this.showSettings = true; },
+              toGame() { this.showSettings = false; },
+              toggleTheme() { this.isDark = !this.isDark; },
+              toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; },
+              toggleVib() { this.isVib = !this.isVib; }
+            }
+          </script>
           EOF
+          echo "Код успешно зашит!"
 
-      - name: Inject Game Logic (index.js)
+      - name: Build Project
         run: |
-          # 5. Записываем чистую JS логику во внешний файл (через Babel скомпилируется БЕЗ ошибок!)
-          cat << 'EOF' > src/pages/index/index.js
-          import vibrator from '@system.vibrator'
-          
-          export default {
-            private: {
-              gameMatrix: [],
-              isDark: true,
-              tileStyle: 0,
-              isVib: true,
-              showSettings: false,
-              themeClass: 'theme-dark',
-              textThemeClass: 'text-dark',
-              rowThemeClass: 'row-dark',
-              navBtnThemeClass: 'nav-btn-dark',
-              tileClass: 'tile-dark-s0'
-            },
-            onInit() {
-              let arr = [];
-              for (let i = 1; i <= 15; i++) { arr.push(i); }
-              arr.push(0);
-              arr.sort(function() { return Math.random() - 0.5; });
-              this.gameMatrix = arr;
-              this.updateStyles();
-            },
-            moveTile(index) {
-              let emptyIndex = this.gameMatrix.indexOf(0);
-              let r1 = Math.floor(index / 4), c1 = index % 4;
-              let r2 = Math.floor(emptyIndex / 4), c2 = emptyIndex % 4;
-              if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                let newBoard = [...this.gameMatrix];
-                newBoard[emptyIndex] = newBoard[index];
-                newBoard[index] = 0;
-                this.gameMatrix = newBoard;
-                this.triggerVibe();
-              }
-            },
-            triggerVibe() {
-              if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e) {} }
-            },
-            updateStyles() {
-              this.themeClass = this.isDark ? 'theme-dark' : 'theme-light';
-              this.textThemeClass = this.isDark ? 'text-dark' : 'text-light';
-this.rowThemeClass = this.isDark ? 'row-dark' : 'row-light';
-this.navBtnThemeClass = this.isDark ? 'nav-btn-dark' : 'nav-btn-light';
-if (this.isDark) {
-this.tileClass = this.tileStyle === 0 ? 'tile-dark-s0' : 'tile-dark-s1';
-} else {
-this.tileClass = this.tileStyle === 0 ? 'tile-light-s0' : 'tile-light-s1';
-}
-},
-openSettings() { this.showSettings = true; this.triggerVibe(); },
-closeSettings() { this.showSettings = false; this.triggerVibe(); },
-toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); this.updateStyles(); },
-toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); this.updateStyles(); },
-toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
-}
-EOF
-echo "Вся логика зашита!"
-- name: Install and Build (Strict Release Mode)
-run: |
-npm install
-mkdir -p sign/release
-openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
-npx aiot release
-mkdir -p dist_output
-find dist/ -name ".rpk" -not -path "/node_modules/*" -exec cp {} dist_output/remaster.rpk ;
-- name: Upload RPK
-uses: actions/upload-artifact@v4
-with:
-name: rpk-build
-path: dist_output/remaster.rpk
+          npm install
+          mkdir -p sign/release
+          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
+          npx aiot release
+          mkdir -p dist_output
+          find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpk-build
+          path: dist_output/remaster.rpk
