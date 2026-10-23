@@ -49,8 +49,8 @@ jobs:
           {
             "package": "com.example.fifteenpuzzle",
             "name": "Ремастер",
-            "versionName": "1.0.0",
-            "versionCode": 1,
+            "versionName": "1.0.1",
+            "versionCode": 2,
             "minPlatformVersion": 1000,
             "icon": "/common/logo.png",
             "deviceTypeList": ["band","watch"],
@@ -70,17 +70,32 @@ jobs:
         run: |
           cat << 'EOF' > src/pages/index/index.ux
           <template>
-            <div class="container" style="background-color: {{isDark ? '#000000' : '#F2F2F7'}};">
-              <div if="{{!showSettings}}" class="box">
+            <div class="container" style="background-color: {{isWin ? '#FFD700' : (isDark ? '#000000' : '#F2F2F7')}};">
+              
+              <!-- ЭКРАН ПОБЕДЫ -->
+              <div if="{{isWin}}" class="box">
+                <text class="win-title">ПОБЕДА!</text>
+                <text class="win-subtitle">Игра успешно собрана!</text>
+                <input type="button" class="btn win-btn" value="🎮 Играть снова" onclick="restartGame" />
+                <div class="credits"><text class="c-label" style="color: #000000;">Создал</text><text class="c-name" style="color: #000000;">Александр Солдатов</text></div>
+              </div>
+
+              <!-- ЭКРАН ИГРЫ -->
+              <div if="{{!showSettings && !isWin}}" class="box">
                 <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Пятнашки 4x4</text>
                 <div class="board">
                   <div for="{{gameMatrix}}" class="cell-wrapper">
                     <input if="{{$item !== 0}}" type="button" class="cell" style="background-color: {{tileStyle === 0 ? (isDark ? '#1C1C1E' : '#E5E5EA') : (isDark ? '#007AFF' : '#34C759')}}; color: {{isDark ? '#FFFFFF' : '#000000'}};" value="{{$item}}" onclick="moveTile($idx)" />
                   </div>
                 </div>
-                <input type="button" class="btn" value="⚙ Настройки" onclick="toMenu" />
+                <div class="game-menu">
+                  <input type="button" class="btn half-btn" value="💡 Автоход" onclick="makeAutoMove" />
+                  <input type="button" class="btn half-btn" value="⚙ Меню" onclick="toMenu" />
+                </div>
               </div>
-              <div if="{{showSettings}}" class="box">
+
+              <!-- ЭКРАН НАСТРОЕК -->
+              <div if="{{showSettings && !isWin}}" class="box">
                 <text class="title" style="color: {{isDark ? '#FFFFFF' : '#000000'}};">Настройки</text>
                 <input type="button" class="btn" value="Тема: {{isDark ? '● Темная' : '○ Светлая'}}" onclick="toggleTheme" />
                 <input type="button" class="btn" value="Цвет: {{tileStyle === 0 ? 'Стиль 1' : 'Стиль 2'}}" onclick="toggleColor" />
@@ -88,16 +103,22 @@ jobs:
                 <input type="button" class="btn" style="background-color: #007AFF; color: #FFFFFF;" value="◀ Назад" onclick="toGame" />
                 <div class="credits"><text class="c-label">Создал</text><text class="c-name">Александр Солдатов</text></div>
               </div>
+
             </div>
           </template>
           <style>
             .container { flex-direction: column; align-items: center; width: 212px; height: 490px; padding: 15px 0; }
             .box { flex-direction: column; align-items: center; width: 212px; }
             .title { font-size: 18px; margin-bottom: 12px; font-weight: bold; }
-            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+            .win-title { font-size: 28px; color: #000000; font-weight: bold; margin-top: 40px; margin-bottom: 5px; }
+            .win-subtitle { font-size: 14px; color: #333333; margin-bottom: 40px; font-weight: 500; }
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
             .cell { width: 43px; height: 43px; border-radius: 8px; font-size: 18px; font-weight: bold; }
+            .game-menu { width: 184px; justify-content: space-between; }
             .btn { width: 170px; height: 32px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; background-color: #222222; color: #FFFFFF; }
+            .half-btn { width: 88px; height: 32px; font-size: 13px; }
+            .win-btn { background-color: #000000; color: #FFFFFF; }
             .credits { flex-direction: column; align-items: center; margin-top: 20px; }
             .c-label { font-size: 11px; color: #8E8E93; }
             .c-name { font-size: 13px; color: #FFD700; font-weight: bold; }
@@ -105,18 +126,54 @@ jobs:
           <script>
             import vibrator from '@system.vibrator'
             export default {
-              private: { gameMatrix: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false },
-              onInit() {
-                let arr = []; for (let i = 1; i <= 15; i++) { arr.push(i); } arr.push(0);
-                arr.sort(function() { return Math.random() - 0.5; }); this.gameMatrix = arr;
+              private: { gameMatrix: [], movesHistory: [], isDark: true, tileStyle: 0, isVib: true, showSettings: false, isWin: false },
+              onInit() { this.restartGame(); },
+              restartGame() {
+                this.isWin = false; this.showSettings = false; this.movesHistory = [];
+                let arr =;
+                let emptyIndex = 15;
+                
+                // Честное перемешивание ходами, чтобы бот мог распутать обратно 100% без ошибок
+                for (let k = 0; i < 60; i++) {
+                  let r = Math.floor(emptyIndex / 4), c = emptyIndex % 4;
+                  let validMoves = [];
+                  if (r > 0) validMoves.push(emptyIndex - 4);
+                  if (r < 3) validMoves.push(emptyIndex + 4);
+                  if (c > 0) validMoves.push(emptyIndex - 1);
+                  if (c < 3) validMoves.push(emptyIndex + 1);
+                  
+                  let nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                  arr[emptyIndex] = arr[nextMove]; arr[nextMove] = 0;
+                  this.movesHistory.push(emptyIndex); // Запоминаем куда должен встать пустой
+                  emptyIndex = nextMove;
+                }
+                this.gameMatrix = arr;
               },
               moveTile(index) {
+                if (this.isWin) return;
                 let emptyIndex = this.gameMatrix.indexOf(0);
                 if ((Math.abs(Math.floor(index/4) - Math.floor(emptyIndex/4)) + Math.abs((index%4) - (emptyIndex%4))) === 1) {
                   let newBoard = [...this.gameMatrix]; newBoard[emptyIndex] = newBoard[index]; newBoard[index] = 0;
-                  this.gameMatrix = newBoard; if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e) {} }
+                  this.gameMatrix = newBoard; this.triggerVibe('short'); this.checkWin();
                 }
               },
+              makeAutoMove() {
+                if (this.isWin || this.movesHistory.length === 0) return;
+                let targetEmptyIndex = this.movesHistory.pop(); // Берем последний ход назад
+                let currentEmptyIndex = this.gameMatrix.indexOf(0);
+                
+                let newBoard = [...this.gameMatrix];
+                newBoard[currentEmptyIndex] = newBoard[targetEmptyIndex];
+                newBoard[targetEmptyIndex] = 0;
+                this.gameMatrix = newBoard;
+                this.triggerVibe('short');
+                this.checkWin();
+              },
+              checkWin() {
+                for (let i = 0; i < 15; i++) { if (this.gameMatrix[i] !== (i + 1)) return; }
+                this.isWin = true; this.triggerVibe('long');
+              },
+              triggerVibe(mode) { if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e) {} } },
               toMenu() { this.showSettings = true; },
               toGame() { this.showSettings = false; },
               toggleTheme() { this.isDark = !this.isDark; },
@@ -125,7 +182,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Код успешно зашит!"
+          echo "Код умного автосборщика успешно зашит!"
 
       - name: Build Project
         run: |
