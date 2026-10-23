@@ -33,10 +33,10 @@ jobs:
         run: |
           mkdir -p src/pages/index
           
-          # 1. Манифест приложения (с поддержкой band и watch)
+          # 1. Манифест приложения с релизным пакетом com.soldatov.remaster
           cat << 'EOF' > src/manifest.json
           {
-            "package": "com.soldatov.fifteen.remaster",
+            "package": "com.soldatov.remaster",
             "name": "Ремастер",
             "versionName": "1.0.0",
             "versionCode": 1,
@@ -62,7 +62,7 @@ jobs:
           }
           EOF
 
-          # 2. Правильная UX разметка с явным объявлением index и item
+          # 2. Правильная UX разметка по стандартам Xiaomi Vela
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -109,7 +109,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 3. Официальная JS структура с computed свойствами
+          # 3. Официальная стабильная JS структура с массивом от 1 до 15
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
@@ -174,7 +174,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Код обновлен!"
+          echo "Код с уникальным пакетом com.soldatov.remaster успешно внедрен!"
 
       - name: Install and Build (True Release Sign Mode)
         run: |
