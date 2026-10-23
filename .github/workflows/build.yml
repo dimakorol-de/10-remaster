@@ -12,25 +12,33 @@ jobs:
       
       - name: Hard Reset Cache
         run: |
-          echo "Принудительно очищаем кэш компилятора..."
-          rm -rf ~/.npm
-          rm -rf node_modules
-          rm -rf dist
-          rm -rf build
+          echo "Очищаем кэш..."
+          rm -rf ~/.npm node_modules dist build src/pages/index
+          mkdir -p src/common src/pages/index
           
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      - name: Generate Solid Icon
+        run: |
+          pip install Pillow
+          python3 -c "
+          from PIL import Image, ImageDraw
+          img = Image.new('RGBA', (192, 192), (0, 110, 245, 255))
+          draw = ImageDraw.Draw(img)
+          mask = Image.new('L', (192, 192), 0)
+          mask_draw = ImageDraw.Draw(mask)
+          mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
+          img.putalpha(mask)
+          draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
+          img.save('src/common/icon.png')
+          "
+          echo "Иконка icon.png создана успешно!"
+
       - name: Inject Clean Game Code
         run: |
-          mkdir -p src/common
-          mkdir -p src/pages/index
-          
-          # 1. Скачиваем официальную заглушку иконки
-          curl -sL "https://placehold.co" -o src/common/icon.png
-          
-          # 2. Манифест С НОВЫМ ИМЕНЕМ ПАКЕТА com.soldatov.fifteen
+          # 1. Манифест с точным путем /common/icon.png
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen",
@@ -55,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 3. Чистейший монолитный UX-код
+          # 2. Монолитный UX-код
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
@@ -87,10 +95,13 @@ jobs:
           <script>
             export default {
               private: {
+                // ИСПРАВЛЕНО: Массив строго закрыт скобкой!
                 gameMatrix: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]
               },
               onInit() {
-                this.gameMatrix.sort(() => Math.random() - 0.5);
+                let arr = [...this.gameMatrix];
+                arr.sort(function() { return Math.random() - 0.5; });
+                this.gameMatrix = arr;
               },
               moveTile(index) {
                 let emptyIndex = this.gameMatrix.indexOf(0);
@@ -107,6 +118,7 @@ jobs:
             }
           </script>
           EOF
+          echo "Код зашит!"
 
       - name: Install and Build (Release Mode)
         run: |
