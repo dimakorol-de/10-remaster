@@ -29,12 +29,12 @@ jobs:
           img.save('src/common/icon.png')
           "
 
-      - name: Inject Safe App Code (UX and JS Separated)
+      - name: Inject Safe App Code (True Application Mode)
         run: |
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Манифест строго под com.example.fifteenpuzzle и /common/icon.png
+          # 1. Манифест полноценного приложения (БЕЗ component сборки)
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -43,7 +43,7 @@ jobs:
             "versionCode": 1,
             "minPlatformVersion": 1000,
             "icon": "/common/icon.png",
-            "deviceTypeList": ["band", "watch"],
+            "deviceTypeList": ["band"],
             "features": [
               { "name": "system.router" },
               { "name": "system.vibrator" }
@@ -63,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 2. Правильная UX разметка без скрытых системных переменных
+          # 2. UX разметка
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -110,7 +110,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 3. Выносим JS логику во внешний файл (через Babel скомпилируется БЕЗ ошибок!)
+          # 3. JS логика
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
@@ -169,7 +169,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Разделенный код успешно зашит по оригинальной структуре!"
+          echo "Код переведен в режим полноценного приложения!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
