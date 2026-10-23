@@ -10,7 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Полностью отключаем и очищаем старый кэш GitHub Actions перед запуском
       - name: Clear GitHub Actions Cache
         run: |
           echo "Стираем старый кэш сервера..."
@@ -42,7 +41,7 @@ jobs:
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Меняем версию на 1.0.1, чтобы Гитхаб принудительно сбросил кэш сборки
+          # 1. package.json версии 1.0.1
           cat << 'EOF' > package.json
           {
             "name": "com.soldatov.remaster",
@@ -58,7 +57,7 @@ jobs:
           }
           EOF
           
-          # 2. Манифест полноценного приложения (БЕЗ watch, БЕЗ component флага)
+          # 2. Манифест С ОБЯЗАТЕЛЬНЫМ блоком config под экран 212
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.remaster",
@@ -68,6 +67,10 @@ jobs:
             "minPlatformVersion": 1000,
             "icon": "/common/icon.png",
             "deviceTypeList": ["band"],
+            "config": {
+              "logLevel": "log",
+              "designWidth": 212
+            },
             "router": {
               "entry": "pages/index",
               "pages": {
@@ -126,7 +129,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 4. JS логика Пятнашек 4х4
+          # 4. JS логика
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
@@ -185,7 +188,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Чистый код версии 1.0.1 подготовлен!"
+          echo "Чистый код с блоком config готов!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
