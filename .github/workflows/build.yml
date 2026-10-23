@@ -34,7 +34,7 @@ jobs:
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Манифест строго под com.example.fifteenpuzzle
+          # 1. Манифест под com.example.fifteenpuzzle
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -63,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 2. Монолитный index.ux без массивов в блоке private
+          # 2. Монолитный index.ux с простым JavaScript
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -136,22 +136,23 @@ jobs:
                 this.shuffle();
               },
               shuffle() {
-                // Создаем и заполняем массив динамически, чтобы не злить UxLoader
-                let arr =;
-                for (let i = arr.length - 2; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-                }
-                this.gameMatrix = arr;
-                this.emptyIndex = arr.indexOf(0);
+                // Ультра-простое перемешивание через встроенный .sort(), чтобы не злить UxLoader
+                let baseArr =;
+                baseArr.sort(function() { return Math.random() - 0.5; });
+                this.gameMatrix = baseArr;
+                this.emptyIndex = baseArr.indexOf(0);
               },
               moveTile(index) {
                 const r1 = Math.floor(index / 4), c1 = index % 4;
                 const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
                 if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                  let newBoard = [...this.gameMatrix];
+                  let newBoard = [];
+                  for (let i = 0; i < this.gameMatrix.length; i++) {
+                    newBoard.push(this.gameMatrix[i]);
+                  }
+                  let temp = newBoard[this.emptyIndex];
                   newBoard[this.emptyIndex] = newBoard[index];
-                  newBoard[index] = 0;
+                  newBoard[index] = temp;
                   this.gameMatrix = newBoard;
                   this.emptyIndex = index;
                   this.triggerVibe();
@@ -167,7 +168,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Монолитный UX код без статического массива успешно зашит!"
+          echo "Монолитный UX код с чистым JS успешно зашит!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
