@@ -29,11 +29,11 @@ jobs:
           img.save('src/common/icon.png')
           "
 
-      - name: Inject Safe App Code (Monolithic UX)
+      - name: Inject Safe App Code (Separated UX and JS)
         run: |
           mkdir -p src/pages/index
           
-          # 1. Манифест строго под com.example.fifteenpuzzle и /common/icon.png
+          # 1. Манифест строго под оригинальный рабочийcom.example.fifteenpuzzle
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -62,7 +62,7 @@ jobs:
           }
           EOF
 
-          # 2. Монолитный UX файл (Логика и разметка ВМЕСТЕ, как в рабочей версии)
+          # 2. Чистая UX разметка без Bash-конфликтов
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -106,72 +106,75 @@ jobs:
             .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
           </style>
 
-          <script>
-            import vibrator from '@system.vibrator'
-            
-            export default {
-              private: {
-                gameMatrix:,
-                emptyIndex: 15,
-                isDark: true,
-                tileStyle: 0,
-                isAnim: true,
-                isVib: true,
-                themes: {
-                  dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
-                  light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
-                },
-                tileColors: [
-                  { dark: '#1C1C1E', light: '#D1D1D6' },
-                  { dark: '#007AFF', light: '#34C759' }
-                ]
-              },
-              computed: {
-                currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
-                currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
-                animClass() { return this.isAnim ? 'anim' : ''; }
-              },
-              onCreate() {
-                this.shuffle();
-              },
-              shuffle() {
-                let arr =;
-                for (let i = arr.length - 1; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-                }
-                this.gameMatrix = arr;
-                this.emptyIndex = arr.indexOf(0);
-              },
-              moveTile(index) {
-                const r1 = Math.floor(index / 4), c1 = index % 4;
-                const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
-                if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                  let newBoard = [...this.gameMatrix];
-                  newBoard[this.emptyIndex] = newBoard[index];
-                  newBoard[index] = 0;
-                  this.gameMatrix = newBoard;
-                  this.emptyIndex = index;
-                  this.triggerVibe();
-                }
-              },
-              triggerVibe() {
-                if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
-              },
-              toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
-              toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
-              toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
-              toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
-            }
-          </script>
+          <script src="./index.js"></script>
           EOF
-          echo "Монолитный UX код успешно зашит!"
+
+          # 3. JS логика Пятнашек 4х4
+          cat << 'EOF' > src/pages/index/index.js
+          import vibrator from '@system.vibrator'
+          
+          export default {
+            private: {
+              gameMatrix:,
+              emptyIndex: 15,
+              isDark: true,
+              tileStyle: 0,
+              isAnim: true,
+              isVib: true,
+              themes: {
+                dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
+                light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
+              },
+              tileColors: [
+                { dark: '#1C1C1E', light: '#D1D1D6' },
+                { dark: '#007AFF', light: '#34C759' }
+              ]
+            },
+            computed: {
+              currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
+              currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
+              animClass() { return this.isAnim ? 'anim' : ''; }
+            },
+            onCreate() {
+              this.shuffle();
+            },
+            shuffle() {
+              let arr =;
+              for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+              }
+              this.gameMatrix = arr;
+              this.emptyIndex = arr.indexOf(0);
+            },
+            moveTile(index) {
+              const r1 = Math.floor(index / 4), c1 = index % 4;
+              const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
+              if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+                let newBoard = [...this.gameMatrix];
+                newBoard[this.emptyIndex] = newBoard[index];
+                newBoard[index] = 0;
+                this.gameMatrix = newBoard;
+                this.emptyIndex = index;
+                this.triggerVibe();
+              }
+            },
+            triggerVibe() {
+              if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
+            },
+            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
+            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
+            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
+            toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
+          }
+          EOF
+          echo "Код успешно внедрен!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
           npm install
           mkdir -p sign/release
-          # Генерируем сертификат подписи на 10 лет (3650 дней) как в оригинале
+          # Оригинальная подпись на 10 лет
           openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
           npx aiot release
           mkdir -p dist_output
