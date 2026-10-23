@@ -29,12 +29,27 @@ jobs:
           img.save('src/common/icon.png')
           "
 
-      - name: Inject Safe App Code (True Application Mode)
+      - name: Inject Safe App Code (Fixed Router and Package)
         run: |
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Манифест приложения с роутером "page" (УБРАН component сборщик)
+          # 1. Принудительно создаем правильный package.json БЕЗ флага компонента
+          cat << 'EOF' > package.json
+          {
+            "name": "com.example.fifteenpuzzle",
+            "version": "1.0.0",
+            "description": "Fifteen Puzzle Remaster",
+            "scripts": {
+              "build": "aiot-toolkit build",
+              "release": "aiot-toolkit release"
+            },
+            "dependencies": {},
+            "devDependencies": {}
+          }
+          EOF
+          
+          # 2. Манифест приложения с правильным Webpack-роутером "component"
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -56,14 +71,14 @@ jobs:
               "entry": "pages/index",
               "pages": {
                 "pages/index": {
-                  "page": "index"
+                  "component": "index"
                 }
               }
             }
           }
           EOF
 
-          # 2. UX разметка
+          # 3. UX разметка
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -110,7 +125,7 @@ jobs:
           <script src="./index.js"></script>
           EOF
 
-          # 3. JS логика
+          # 4. JS логика
           cat << 'EOF' > src/pages/index/index.js
           import vibrator from '@system.vibrator'
           
@@ -169,7 +184,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Принудительный перевод в полноценное приложение выполнен!"
+          echo "Конфигурация исправлена!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
