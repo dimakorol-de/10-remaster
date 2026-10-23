@@ -12,9 +12,9 @@ jobs:
       
       - name: Hard Reset Cache
         run: |
-          echo "Очистка структуры..."
+          echo "Полный сброс структуры..."
           rm -rf ~/.npm node_modules dist build src
-          mkdir -p src/common src/pages/index
+          mkdir -p src/common
           
       - uses: actions/setup-node@v4
         with:
@@ -35,9 +35,9 @@ jobs:
           img.save('src/common/icon.png')
           "
 
-      - name: Inject Safe App Code (True Application Router)
+      - name: Inject Safe App Code (True App Architecture)
         run: |
-          # 1. Манифест с роутером через PATH (УБРАН флаг component!)
+          # 1. Базовый манифест полноценного приложения без сложного роутера страниц
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen",
@@ -50,20 +50,12 @@ jobs:
             "config": {
               "logLevel": "log",
               "designWidth": 212
-            },
-            "router": {
-              "entry": "pages/index",
-              "pages": {
-                "pages/index": {
-                  "path": "index"
-                }
-              }
             }
           }
           EOF
 
-          # 2. Монолитный UX-код
-          cat << 'EOF' > src/pages/index/index.ux
+          # 2. Создаем монолитный главный экран app.ux прямо в корне src
+          cat << 'EOF' > src/app.ux
           <template>
             <div class="container">
               <text class="title">Пятнашки 4x4</text>
@@ -117,7 +109,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Код полноценного приложения зашит!"
+          echo "Код полноценного монолитного приложения зашит!"
 
       - name: Install and Build (Release Mode)
         run: |
