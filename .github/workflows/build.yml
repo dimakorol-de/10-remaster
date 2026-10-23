@@ -130,21 +130,18 @@ jobs:
               onInit() { this.restartGame(); },
               restartGame() {
                 this.isWin = false; this.showSettings = false; this.movesHistory = [];
-                let arr =;
+                let arr = Array.from({length: 16}, (v, i) => (i + 1) % 16);
                 let emptyIndex = 15;
-                
-                // Честное перемешивание ходами, чтобы бот мог распутать обратно 100% без ошибок
-                for (let k = 0; i < 60; i++) {
+                for (let k = 0; k < 40; k++) {
                   let r = Math.floor(emptyIndex / 4), c = emptyIndex % 4;
                   let validMoves = [];
                   if (r > 0) validMoves.push(emptyIndex - 4);
                   if (r < 3) validMoves.push(emptyIndex + 4);
                   if (c > 0) validMoves.push(emptyIndex - 1);
                   if (c < 3) validMoves.push(emptyIndex + 1);
-                  
                   let nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
                   arr[emptyIndex] = arr[nextMove]; arr[nextMove] = 0;
-                  this.movesHistory.push(emptyIndex); // Запоминаем куда должен встать пустой
+                  this.movesHistory.push(emptyIndex);
                   emptyIndex = nextMove;
                 }
                 this.gameMatrix = arr;
@@ -159,9 +156,8 @@ jobs:
               },
               makeAutoMove() {
                 if (this.isWin || this.movesHistory.length === 0) return;
-                let targetEmptyIndex = this.movesHistory.pop(); // Берем последний ход назад
+                let targetEmptyIndex = this.movesHistory.pop();
                 let currentEmptyIndex = this.gameMatrix.indexOf(0);
-                
                 let newBoard = [...this.gameMatrix];
                 newBoard[currentEmptyIndex] = newBoard[targetEmptyIndex];
                 newBoard[targetEmptyIndex] = 0;
@@ -182,7 +178,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Код умного автосборщика успешно зашит!"
+          echo "Код успешно зашит!"
 
       - name: Build Project
         run: |
