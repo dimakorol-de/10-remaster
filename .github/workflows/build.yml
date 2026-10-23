@@ -63,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 2. Монолитный UX-код
+          # 2. Монолитный UX-код с динамическим заполнением массива
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
@@ -95,11 +95,18 @@ jobs:
           <script>
             export default {
               private: {
-                // ИСПРАВЛЕНО: Массив строго закрыт скобкой!
-                gameMatrix: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]
+                // Оставляем пустым, чтобы компилятор не ругался на синтаксис
+                gameMatrix: []
               },
               onInit() {
-                let arr = [...this.gameMatrix];
+                // Динамически генерируем цифры от 1 до 15 и 0 для пустой клетки
+                let arr = [];
+                for (let i = 1; i <= 15; i++) {
+                  arr.push(i);
+                }
+                arr.push(0);
+                
+                // Перемешиваем по стандартному алгоритму
                 arr.sort(function() { return Math.random() - 0.5; });
                 this.gameMatrix = arr;
               },
@@ -109,7 +116,10 @@ jobs:
                 let r2 = Math.floor(emptyIndex / 4), c2 = emptyIndex % 4;
                 
                 if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                  let newBoard = [...this.gameMatrix];
+                  let newBoard = [];
+                  for (let i = 0; i < this.gameMatrix.length; i++) {
+                    newBoard.push(this.gameMatrix[i]);
+                  }
                   newBoard[emptyIndex] = newBoard[index];
                   newBoard[index] = 0;
                   this.gameMatrix = newBoard;
