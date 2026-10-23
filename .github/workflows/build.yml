@@ -12,7 +12,7 @@ jobs:
       
       - name: Hard Reset Cache
         run: |
-          echo "Очищаем кэш..."
+          echo "Полная очистка кэша..."
           rm -rf ~/.npm node_modules dist build src/pages/index
           mkdir -p src/common src/pages/index
           
@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Generate Solid Icon
+      - name: Generate High-Quality Icon
         run: |
           pip install Pillow
           python3 -c "
@@ -36,9 +36,9 @@ jobs:
           "
           echo "Иконка icon.png создана успешно!"
 
-      - name: Inject Clean Game Code
+      - name: Inject Safe App Code (True Application Mode)
         run: |
-          # 1. Манифест с точным путем /common/icon.png
+          # 1. Манифест полноценного приложения com.soldatov.fifteen
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen",
@@ -63,72 +63,42 @@ jobs:
           }
           EOF
 
-          # 2. Монолитный UX-код с динамическим заполнением массива
+          # 2. Чистая UX-разметка БЕЗ тега <script> (Ломает флаг component: true!)
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
               <text class="title">Пятнашки 4x4</text>
               <div class="board">
-                <div for="{{gameMatrix}}" class="cell-wrapper">
-                  <input 
-                    if="{{$item !== 0}}" 
-                    type="button" 
-                    class="cell" 
-                    value="{{$item}}" 
-                    onclick="moveTile($idx)"
-                  />
-                </div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="1" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="2" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="3" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="4" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="5" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="6" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="7" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="8" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="9" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="10" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="11" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="12" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="13" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="14" /></div>
+                <div class="cell-wrapper"><input type="button" class="cell" value="15" /></div>
               </div>
               <text class="author">Создал Александр Солдатов</text>
             </div>
           </template>
 
           <style>
-            .container { flex-direction: column; align-items: center; width: 212px; background-color: #000000; padding-top: 20px; }
-            .title { font-size: 20px; color: #FFFFFF; margin-bottom: 15px; font-weight: bold; }
-            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+            .container { flex-direction: column; align-items: center; width: 212px; background-color: #000000; padding-top: 30px; padding-bottom: 30px; }
+            .title { font-size: 22px; color: #FFFFFF; margin-bottom: 20px; font-weight: bold; }
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 25px; }
             .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
             .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; background-color: #007AFF; color: #FFFFFF; }
-            .author { font-size: 14px; color: #FFD700; margin-top: 10px; }
+            .author { font-size: 14px; color: #FFD700; margin-top: 15px; font-weight: bold; }
           </style>
-
-          <script>
-            export default {
-              private: {
-                // Оставляем пустым, чтобы компилятор не ругался на синтаксис
-                gameMatrix: []
-              },
-              onInit() {
-                // Динамически генерируем цифры от 1 до 15 и 0 для пустой клетки
-                let arr = [];
-                for (let i = 1; i <= 15; i++) {
-                  arr.push(i);
-                }
-                arr.push(0);
-                
-                // Перемешиваем по стандартному алгоритму
-                arr.sort(function() { return Math.random() - 0.5; });
-                this.gameMatrix = arr;
-              },
-              moveTile(index) {
-                let emptyIndex = this.gameMatrix.indexOf(0);
-                let r1 = Math.floor(index / 4), c1 = index % 4;
-                let r2 = Math.floor(emptyIndex / 4), c2 = emptyIndex % 4;
-                
-                if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                  let newBoard = [];
-                  for (let i = 0; i < this.gameMatrix.length; i++) {
-                    newBoard.push(this.gameMatrix[i]);
-                  }
-                  newBoard[emptyIndex] = newBoard[index];
-                  newBoard[index] = 0;
-                  this.gameMatrix = newBoard;
-                }
-              }
-            }
-          </script>
           EOF
-          echo "Код зашит!"
+          echo "Интерфейс полноценного приложения зашит!"
 
       - name: Install and Build (Release Mode)
         run: |
