@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: 20
           
-      - name: Generate High-Quality Designer Icon
+      - name: Generate Icon (icon.png)
         run: |
           mkdir -p src/common
           pip install Pillow
@@ -26,22 +26,22 @@ jobs:
           mask_draw.rounded_rectangle([(0, 0), (192, 192)], radius=45, fill=255)
           img.putalpha(mask)
           draw.text((96, 93), '15', fill=(255, 255, 255, 255), anchor='mm', font_size=85, font_style='bold')
-          img.save('src/common/logo.png')
+          img.save('src/common/icon.png')
           "
 
-      - name: Inject Safe App Code (UX and JS)
+      - name: Inject Safe App Code (Monolithic UX)
         run: |
           mkdir -p src/pages/index
           
-          # 1. Манифест приложения с релизным пакетом com.soldatov.remaster
+          # 1. Манифест строго под com.example.fifteenpuzzle и /common/icon.png
           cat << 'EOF' > src/manifest.json
           {
-            "package": "com.soldatov.remaster",
+            "package": "com.example.fifteenpuzzle",
             "name": "Ремастер",
             "versionName": "1.0.0",
             "versionCode": 1,
             "minPlatformVersion": 1000,
-            "icon": "/common/logo.png",
+            "icon": "/common/icon.png",
             "deviceTypeList": ["band", "watch"],
             "features": [
               { "name": "system.router" },
@@ -62,7 +62,7 @@ jobs:
           }
           EOF
 
-          # 2. Правильная UX разметка по стандартам Xiaomi Vela
+          # 2. Монолитный UX файл (Логика и разметка ВМЕСТЕ, как в рабочей версии)
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -106,81 +106,73 @@ jobs:
             .credits-name { font-size: 15px; color: #FFD700; font-weight: bold; margin-top: 2px; }
           </style>
 
-          <script src="./index.js"></script>
+          <script>
+            import vibrator from '@system.vibrator'
+            
+            export default {
+              private: {
+                gameMatrix:,
+                emptyIndex: 15,
+                isDark: true,
+                tileStyle: 0,
+                isAnim: true,
+                isVib: true,
+                themes: {
+                  dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
+                  light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
+                },
+                tileColors: [
+                  { dark: '#1C1C1E', light: '#D1D1D6' },
+                  { dark: '#007AFF', light: '#34C759' }
+                ]
+              },
+              computed: {
+                currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
+                currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
+                animClass() { return this.isAnim ? 'anim' : ''; }
+              },
+              onCreate() {
+                this.shuffle();
+              },
+              shuffle() {
+                let arr =;
+                for (let i = arr.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+                }
+                this.gameMatrix = arr;
+                this.emptyIndex = arr.indexOf(0);
+              },
+              moveTile(index) {
+                const r1 = Math.floor(index / 4), c1 = index % 4;
+                const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
+                if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+                  let newBoard = [...this.gameMatrix];
+                  newBoard[this.emptyIndex] = newBoard[index];
+                  newBoard[index] = 0;
+                  this.gameMatrix = newBoard;
+                  this.emptyIndex = index;
+                  this.triggerVibe();
+                }
+              },
+              triggerVibe() {
+                if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
+              },
+              toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
+              toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
+              toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
+              toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
+            }
+          </script>
           EOF
+          echo "Монолитный UX код успешно зашит!"
 
-          # 3. Официальная стабильная JS структура с массивом от 1 до 15
-          cat << 'EOF' > src/pages/index/index.js
-          import vibrator from '@system.vibrator'
-          
-          export default {
-            private: {
-              gameMatrix:,
-              emptyIndex: 15,
-              isDark: true,
-              tileStyle: 0,
-              isAnim: true,
-              isVib: true,
-              themes: {
-                dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
-                light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
-              },
-              tileColors: [
-                { dark: '#1C1C1E', light: '#D1D1D6' },
-                { dark: '#007AFF', light: '#34C759' }
-              ]
-            },
-            computed: {
-              currentTheme() {
-                return this.isDark ? this.themes.dark : this.themes.light;
-              },
-              currentTileColor() {
-                return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light'];
-              },
-              animClass() {
-                return this.isAnim ? 'anim' : '';
-              }
-            },
-            onCreate() {
-              this.shuffle();
-            },
-            shuffle() {
-              let arr =;
-              for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-              }
-              this.gameMatrix = arr;
-              this.emptyIndex = arr.indexOf(0);
-            },
-            moveTile(index) {
-              const r1 = Math.floor(index / 4), c1 = index % 4;
-              const r2 = Math.floor(this.emptyIndex / 4), c2 = this.emptyIndex % 4;
-              if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-                let newBoard = [...this.gameMatrix];
-                newBoard[this.emptyIndex] = newBoard[index];
-                newBoard[index] = 0;
-                this.gameMatrix = newBoard;
-                this.emptyIndex = index;
-                this.triggerVibe();
-              }
-            },
-            triggerVibe() {
-              if (this.isVib) { try { vibrator.vibrate({ mode: 'short' }); } catch(e){} }
-            },
-            toggleTheme() { this.isDark = !this.isDark; this.triggerVibe(); },
-            toggleColor() { this.tileStyle = this.tileStyle === 0 ? 1 : 0; this.triggerVibe(); },
-            toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe(); },
-            toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
-          }
-          EOF
-          echo "Код с уникальным пакетом com.soldatov.remaster успешно внедрен!"
-
-      - name: Install and Build (True Release Sign Mode)
+      - name: Install and Build (10-Year Certificate Release Mode)
         run: |
           npm install
           mkdir -p sign/release
-          openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
+          # Генерируем сертификат подписи на 10 лет (3650 дней) как в оригинале
+          openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout sign/release/private.pem -out sign/release/certificate.pem -subj "/CN=localhost"
           npx aiot release
           mkdir -p dist_output
           find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
