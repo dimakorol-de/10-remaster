@@ -9,6 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Hard Reset Cache
+        run: |
+          echo "Принудительно очищаем кэш компилятора..."
+          rm -rf ~/.npm
+          rm -rf node_modules
+          rm -rf dist
+          rm -rf build
+          
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -21,10 +30,10 @@ jobs:
           # 1. Скачиваем официальную заглушку иконки
           curl -sL "https://placehold.co" -o src/common/icon.png
           
-          # 2. Манифест строго под рабочее имя com.example.fifteenpuzzle
+          # 2. Манифест С НОВЫМ ИМЕНЕМ ПАКЕТА com.soldatov.fifteen
           cat << 'EOF' > src/manifest.json
           {
-            "package": "com.example.fifteenpuzzle",
+            "package": "com.soldatov.fifteen",
             "name": "Пятнашки",
             "versionName": "1.0.0",
             "versionCode": 1,
@@ -46,7 +55,7 @@ jobs:
           }
           EOF
 
-          # 3. Чистейший монолитный UX-код без сложных JS-функций и кэша
+          # 3. Чистейший монолитный UX-код
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container">
@@ -81,7 +90,6 @@ jobs:
                 gameMatrix: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]
               },
               onInit() {
-                // Простое и надежное перемешивание при старте
                 this.gameMatrix.sort(() => Math.random() - 0.5);
               },
               moveTile(index) {
@@ -102,7 +110,6 @@ jobs:
 
       - name: Install and Build (Release Mode)
         run: |
-          # Создаем чистый проект с нуля
           echo '{"name":"fifteen","version":"1.0.0","devDependencies":{"aiot-toolkit":"2.0.5"}}' > package.json
           npm install
           mkdir -p sign/release
