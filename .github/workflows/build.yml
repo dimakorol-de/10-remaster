@@ -31,11 +31,10 @@ jobs:
 
       - name: Inject Monolithic Code (No index.js)
         run: |
-          # ЖЕСТКАЯ ОЧИСТКА: Полностью сносим папку страницы, чтобы удалить скрытый index.js!
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Записываем манифест строго под com.example.fifteenpuzzle
+          # 1. Манифест строго под com.example.fifteenpuzzle
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -64,7 +63,7 @@ jobs:
           }
           EOF
 
-          # 2. Записываем МОНОЛИТНЫЙ index.ux (Вся логика и разметка строго здесь)
+          # 2. Монолитный index.ux без массивов в блоке private
           cat << 'EOF' > src/pages/index/index.ux
           <template>
             <div class="container" style="background-color: {{ currentTheme.bg }};">
@@ -113,7 +112,7 @@ jobs:
             
             export default {
               private: {
-                gameMatrix:,
+                gameMatrix: [],
                 emptyIndex: 15,
                 isDark: true,
                 tileStyle: 0,
@@ -137,8 +136,9 @@ jobs:
                 this.shuffle();
               },
               shuffle() {
-                let arr = [...this.gameMatrix];
-                for (let i = arr.length - 1; i > 0; i--) {
+                // Создаем и заполняем массив динамически, чтобы не злить UxLoader
+                let arr =;
+                for (let i = arr.length - 2; i > 0; i--) {
                   const j = Math.floor(Math.random() * (i + 1));
                   let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
                 }
@@ -167,7 +167,7 @@ jobs:
             }
           </script>
           EOF
-          echo "Монолитный UX код успешно зашит, старый кэш стерт!"
+          echo "Монолитный UX код без статического массива успешно зашит!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
