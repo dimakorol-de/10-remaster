@@ -12,9 +12,9 @@ jobs:
       
       - name: Hard Reset Cache
         run: |
-          echo "Полный сброс структуры..."
+          echo "Очистка структуры..."
           rm -rf ~/.npm node_modules dist build src
-          mkdir -p src/common
+          mkdir -p src/common src/pages/index
           
       - uses: actions/setup-node@v4
         with:
@@ -35,9 +35,9 @@ jobs:
           img.save('src/common/icon.png')
           "
 
-      - name: Inject Pure Native Vela App Code
+      - name: Inject Safe App Code (True Application Router)
         run: |
-          # 1. Манифест чистого нативного приложения (БЕЗ роутера страниц страниц!)
+          # 1. Манифест с роутером через PATH (УБРАН флаг component!)
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.soldatov.fifteen",
@@ -50,24 +50,76 @@ jobs:
             "config": {
               "logLevel": "log",
               "designWidth": 212
-            }
-          }
-          EOF
-
-          # 2. Главный исполняемый файл приложения (app.js в корне src)
-          cat << 'EOF' > src/app.js
-          export default {
-            onCreate() {
-              console.log("Нативное приложение Пятнашки запущено!");
             },
-            onDestroy() {
-              console.log("Приложение закрыто");
+            "router": {
+              "entry": "pages/index",
+              "pages": {
+                "pages/index": {
+                  "path": "index"
+                }
+              }
             }
           }
           EOF
-          echo "Нативная структура Vela готова!"
 
-      - name: Install and Build (Native Release Mode)
+          # 2. Монолитный UX-код
+          cat << 'EOF' > src/pages/index/index.ux
+          <template>
+            <div class="container">
+              <text class="title">Пятнашки 4x4</text>
+              <div class="board">
+                <div for="{{gameMatrix}}" class="cell-wrapper">
+                  <input 
+                    if="{{$item !== 0}}" 
+                    type="button" 
+                    class="cell" 
+                    value="{{$item}}" 
+                    onclick="moveTile($idx)"
+                  />
+                </div>
+              </div>
+              <text class="author">Создал Александр Солдатов</text>
+            </div>
+          </template>
+
+          <style>
+            .container { flex-direction: column; align-items: center; width: 212px; background-color: #000000; padding-top: 30px; padding-bottom: 30px; }
+            .title { font-size: 22px; color: #FFFFFF; margin-bottom: 20px; font-weight: bold; }
+            .board { width: 184px; flex-wrap: wrap; justify-content: center; margin-bottom: 25px; }
+            .cell-wrapper { width: 43px; height: 43px; margin: 1.5px; justify-content: center; align-items: center; }
+            .cell { width: 43px; height: 43px; border-radius: 6px; font-size: 18px; font-weight: bold; background-color: #007AFF; color: #FFFFFF; }
+            .author { font-size: 14px; color: #FFD700; margin-top: 15px; font-weight: bold; }
+          </style>
+
+          <script>
+            export default {
+              private: {
+                gameMatrix: []
+              },
+              onInit() {
+                let arr = [];
+                for (let i = 1; i <= 15; i++) { arr.push(i); }
+                arr.push(0);
+                arr.sort(function() { return Math.random() - 0.5; });
+                this.gameMatrix = arr;
+              },
+              moveTile(index) {
+                let emptyIndex = this.gameMatrix.indexOf(0);
+                let r1 = Math.floor(index / 4), c1 = index % 4;
+                let r2 = Math.floor(emptyIndex / 4), c2 = emptyIndex % 4;
+                if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+                  let newBoard = [...this.gameMatrix];
+                  newBoard[emptyIndex] = newBoard[index];
+                  newBoard[index] = 0;
+                  this.gameMatrix = newBoard;
+                }
+              }
+            }
+          </script>
+          EOF
+          echo "Код полноценного приложения зашит!"
+
+      - name: Install and Build (Release Mode)
         run: |
           echo '{"name":"fifteen","version":"1.0.0","devDependencies":{"aiot-toolkit":"2.0.5"}}' > package.json
           npm install
