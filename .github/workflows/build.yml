@@ -34,15 +34,15 @@ jobs:
           rm -rf src/pages/index
           mkdir -p src/pages/index
           
-          # 1. Принудительно создаем правильный package.json С ЗАВИСИМОСТЯМИ компилятора
+          # 1. Исправленный package.json с вызовом через npx
           cat << 'EOF' > package.json
           {
             "name": "com.example.fifteenpuzzle",
             "version": "1.0.0",
-            "description": "Fifteen Puzzle Remaster",
+            "description": "Clean Release Build",
             "scripts": {
-              "build": "aiot-toolkit build",
-              "release": "aiot-toolkit release"
+              "build": "npx aiot-toolkit build",
+              "release": "npx aiot-toolkit release"
             },
             "dependencies": {},
             "devDependencies": {
@@ -51,7 +51,7 @@ jobs:
           }
           EOF
           
-          # 2. Манифест приложения с правильным Webpack-роутером "component"
+          # 2. Манифест приложения с Webpack-роутером
           cat << 'EOF' > src/manifest.json
           {
             "package": "com.example.fifteenpuzzle",
@@ -186,7 +186,7 @@ jobs:
             toggleVib() { this.isVib = !this.isVib; this.triggerVibe(); }
           }
           EOF
-          echo "Конфигурация с зависимостями успешно исправлена!"
+          echo "Скрипты вызова исправлены!"
 
       - name: Install and Build (10-Year Certificate Release Mode)
         run: |
