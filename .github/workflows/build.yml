@@ -53,3 +53,9 @@ jobs:
           npx aiot release
           mkdir -p dist_output
           find dist/ -name "*.rpk" -not -path "*/node_modules/*" -exec cp {} dist_output/remaster.rpk \;
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-rpk-file
+          path: dist_output/remaster.rpk
