@@ -2,8 +2,7 @@ name: Build RPK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,6 +23,27 @@ jobs:
           rm -f src/pages/index/index.js
           echo '{"name":"myapp","version":"1.2.0","private":true,"scripts":{"build":"aiot build","release":"aiot release"},"devDependencies":{"aiot-toolkit":"2.0.5"}}' > package.json
           echo '<script>export default { onCreate() {} }</script>' > src/app.ux
+          cat << 'EOF' > src/manifest.json
+          {
+            "package": "com.example.fifteenpuzzle",
+            "name": "Пятнашки",
+            "versionName": "1.2.0",
+            "versionCode": 3,
+            "minPlatformVersion": 1000,
+            "icon": "/common/logo.png",
+            "deviceTypeList": ["band","watch"],
+            "features": [
+              { "name": "system.router" },
+              { "name": "system.vibrator" },
+              { "name": "system.storage" }
+            ],
+            "config": { "logLevel": "log", "designWidth": 212 },
+            "router": {
+              "entry": "pages/index",
+              "pages": { "pages/index": { "component": "index" } }
+            }
+          }
+          EOF
 
       - name: Build RPK
         run: |
