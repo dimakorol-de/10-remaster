@@ -310,19 +310,19 @@ toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe('short'); },
 toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
 saveRecord() {
 storage.get({
-key: best_moves_${this.gridSize},
+key: 'best_moves_' + this.gridSize,
 success: (data) => {
 if (!data || this.moves < parseInt(data)) {
-storage.set({ key: best_moves_${this.gridSize}, value: this.moves.toString() });
+storage.set({ key: 'best_moves_' + this.gridSize, value: this.moves.toString() });
 this.bestMoves = this.moves;
 }
 }
 });
 storage.get({
-key: best_time_${this.gridSize},
+key: 'best_time_' + this.gridSize,
 success: (data) => {
 if (!data || this.timerSeconds < parseInt(data)) {
-storage.set({ key: best_time_${this.gridSize}, value: this.timerSeconds.toString() });
+storage.set({ key: 'best_time_' + this.gridSize, value: this.timerSeconds.toString() });
 this.bestTime = this.timerSeconds;
 }
 }
@@ -330,13 +330,12 @@ this.bestTime = this.timerSeconds;
 },
 loadRecords() {
 storage.get({
-key: best_moves_${this.gridSize},
+key: 'best_moves_' + this.gridSize,
 success: (data) => { this.bestMoves = data || '-'; }
 });
 storage.get({
-key: best_time_${this.gridSize},
+key: 'best_time_' + this.gridSize,
 success: (data) => { this.bestTime = data || '-'; }
 });
 }
 }
-
