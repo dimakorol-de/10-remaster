@@ -116,6 +116,7 @@
     private: {
       gameMatrix: [],
       gridSize: 4,
+      lastGridSize: 4, // Запоминаем режим, чтобы отследить изменения
       emptyIndex: 15,
       moves: 0,
       timerSeconds: 0,
@@ -129,7 +130,6 @@
       autoTimerId: null,
       showSettingsMenu: false,
       attempts: 5,
-      // Добавлен 5-й цвет
       tileColors: [
         { dark: '#1C1C1E', light: '#D1D1D6' },
         { dark: '#007AFF', light: '#34C759' },
@@ -168,12 +168,17 @@
       this.stopAutoRun();
     },
     openSettings() {
+      this.lastGridSize = this.gridSize; // Фиксируем текущий режим перед входом
       this.showSettingsMenu = true;
       this.triggerVibe('short');
     },
     closeSettings() {
       this.showSettingsMenu = false;
       this.triggerVibe('short');
+      // Авто-сброс поля: если игрок выбрал другой режим (например, переключил на 5х5)
+      if (this.gridSize !== this.lastGridSize) {
+        this.resetGame();
+      }
     },
     clickResetGame() {
       if (this.attempts > 0) {
@@ -211,6 +216,7 @@
         this.gameMatrix[nextIdx] = 0;
         this.emptyIndex = nextIdx;
       }
+      this.lastGridSize = this.gridSize; // Синхронизируем состояние
     },
     startTimer() {
       if (!this.timerId) {
@@ -224,19 +230,18 @@
       if (this.isWon) return;
       const r1 = Math.floor(index / this.gridSize), c1 = index % this.gridSize;
       const r2 = Math.floor(this.emptyIndex / this.gridSize), c2 = this.emptyIndex % this.gridSize;
-      
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
-        
-        this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
-        this.gameMatrix[index] = 0;
-        this.emptyIndex = index;
-        this.moves++;
-        this.triggerVibe('short');
-        this.checkWin();
-      }
-    },
-    checkWin() {let totalCells = this.gridSize * this.gridSize;
+if (this.moves === 0 && !this.autoPlaying) this.startTimer();
+this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
+this.gameMatrix[index] = 0;
+this.emptyIndex = index;
+this.moves++;
+this.triggerVibe('short');
+this.checkWin();
+}
+},
+checkWin() {
+let totalCells = this.gridSize * this.gridSize;
 for (let i = 0; i < totalCells - 1; i++) {
 if (this.gameMatrix[i] !== i + 1) return;
 }
@@ -276,7 +281,7 @@ this.moveTile(targetIndex);
 },
 cycleGridSize() {
 this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1;
-this.resetGame();
+// Мы убрали отсюда автоматический сброс, чтобы дождаться нажатия кнопки «Вернуться»
 },
 triggerVibe(mode) {
 if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} }
