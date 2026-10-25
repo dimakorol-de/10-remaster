@@ -38,8 +38,8 @@ jobs:
           img = Image.new('RGB', (192, 192), color='#007AFF')
           draw = ImageDraw.Draw(img)
           
-          # Корректные координаты для отрисовки иконки
-          draw.rounded_rectangle([0, 0, 192, 192], radius=40, fill='#1C1C1E')
+          # Отрисовка подложки и цифры 15
+          draw.rounded_rectangle([16, 16, 176, 176], radius=40, fill='#1C1C1E')
           draw.text((96, 96), "15", fill='#FFFFFF', anchor="mm", font_size=90)
           
           img.save('src/common/icon.png')
@@ -202,8 +202,7 @@ jobs:
             .ios-dot-on { transform: translateX(20px); }
             .ios-dot-off { transform: translateX(0); }
 
-            .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
-.credits-label { font-size: 11px; color: #8E8E93; }
+            .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }.credits-label { font-size: 11px; color: #8E8E93; }
 .credits-name { font-size: 14px; color: #FFD700; font-weight: bold; margin-top: 2px; }
 import vibrator from '@system.vibrator'
 import storage from '@system.storage'
