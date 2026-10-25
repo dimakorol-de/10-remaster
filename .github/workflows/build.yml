@@ -28,21 +28,53 @@ jobs:
         run: |
           pip install Pillow
 
-      - name: Generate App Icon
+      - name: Generate App Icon and Config
         run: |
           python - << 'EOF'
           import os
           from PIL import Image, ImageDraw
+          
+          # 1. Генерируем иконки под всеми именами
           os.makedirs('src/common', exist_ok=True)
           img = Image.new('RGB', (192, 192), color='#007AFF')
           draw = ImageDraw.Draw(img)
           draw.rounded_rectangle((0, 0, 192, 192), radius=40, fill='#1C1C1E')
           draw.text((96, 96), "15", fill='#FFFFFF', anchor="mm", font_size=90)
-          
-          # Сохраняем под обоими возможными именами для manifest.json
           img.save('src/common/icon.png')
           img.save('src/common/logo.png')
-          print("Иконки icon.png и logo.png успешно созданы!")
+          
+          # 2. Перезаписываем манифест со всеми нужными правами
+          import json
+          manifest = {
+              "package": "com.example.fifteenpuzzle",
+              "name": "Пятнашки",
+              "versionName": "1.3.0",
+              "versionCode": 4,
+              "minPlatformVersion": 1000,
+              "icon": "/common/icon.png",
+              "deviceTypeList": ["band", "watch"],
+              "features": [
+                  { "name": "system.router" },
+                  { "name": "system.vibrator" },
+                  { "name": "system.storage" }
+              ],
+              "config": {
+                  "logLevel": "log",
+                  "designWidth": 212
+              },
+              "router": {
+                  "entry": "pages/index",
+                  "pages": {
+                      "pages/index": {
+                          "component": "index"
+                      }
+                  }
+              }
+          }
+          with open('src/manifest.json', 'w', encoding='utf-8') as f:
+              json.dump(manifest, f, ensure_ascii=False, indent=2)
+          
+          print("Иконки и manifest.json успешно обновлены!")
           EOF
 
       - name: Install and Build Remaster
