@@ -1,19 +1,19 @@
 <template>
-  <div class="container {{ isWon ? 'victory-bg-anim' : '' }}" style="background-color: {{ currentTheme.bg }};">
+  <div class="container" style="background-color: {{ isDark ? '#000000' : '#FFFFFF' }};">
     <!-- Счётчики игры -->
     <div class="stats-row">
-      <text class="stats-row-text" style="color: {{ currentTheme.text }};">⏱ {{ formattedTime }}</text>
-      <text class="stats-row-text" style="color: {{ currentTheme.text }};">👣 {{ moves }}</text>
+      <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">⏱ {{ formattedTime }}</text>
+      <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">👣 {{ moves }}</text>
     </div>
 
     <!-- Игровое поле -->
-    <div class="board" style="width: {{ boardSizePx }}px;">
-      <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: {{ cellMarginPx }}px;">
+    <div class="board" style="width: 184px;">
+      <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: 1.5px;">
         <input 
           if="{{item !== 0}}" 
           type="button" 
-          class="cell {{ animClass }} {{ isWon ? 'victory-tile-anim' : '' }}" 
-          style="background-color: {{ currentTileColor }}; color: {{ currentTheme.text }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
+          class="cell" 
+          style="background-color: {{ currentTileColor }}; color: {{ isDark ? '#FFFFFF' : '#000000' }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
           value="{{item}}" 
           onclick="moveTile(index)"
         />
@@ -22,8 +22,7 @@
 
     <!-- Экран Победы -->
     <div if="{{ isWon }}" class="victory-block">
-      <text class="victory-title">ПОБЕДА!</text>
-      <text class="victory-sub" style="color: {{ currentTheme.text }};">Рекорд: {{ bestMoves }} ходов / {{ bestTime }}с</text>
+      <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА!</text>
     </div>
 
     <!-- Управление Автоходом -->
@@ -35,23 +34,22 @@
 
     <!-- Настройки -->
     <div class="menu">
-      <text class="menu-title" style="color: {{ currentTheme.text }};">Настройки</text>
+      <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
       
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Цвет: {{ tileStyleName }}" onclick="toggleColor" />
-      <input type="button" class="btn" style="background-color: {{ currentTheme.btnBg }}; color: {{ currentTheme.text }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
+      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
+      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Цвет: {{ tileStyleName }}" onclick="toggleColor" />
+      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
       
-      <!-- Переключатель Анимации в стиле iPhone -->
+      <!-- Упрощенные переключатели без псевдоклассов -->
       <div class="ios-row" onclick="toggleAnim">
-        <text class="ios-label" style="color: {{ currentTheme.text }};">Анимация</text>
+        <text class="ios-label" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Анимация</text>
         <div class="ios-switch {{ isAnim ? 'ios-switch-on' : 'ios-switch-off' }}">
           <div class="ios-dot {{ isAnim ? 'ios-dot-on' : 'ios-dot-off' }}"></div>
         </div>
       </div>
 
-      <!-- Переключатель Вибро в стиле iPhone -->
       <div class="ios-row" onclick="toggleVib">
-        <text class="ios-label" style="color: {{ currentTheme.text }};">Вибрация</text>
+        <text class="ios-label" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Вибрация</text>
         <div class="ios-switch {{ isVib ? 'ios-switch-on' : 'ios-switch-off' }}">
           <div class="ios-dot {{ isVib ? 'ios-dot-on' : 'ios-dot-off' }}"></div>
         </div>
@@ -59,70 +57,38 @@
     </div>
 
     <div class="credits">
-      <text class="credits-label">Создал</text>
-      <text class="credits-name">Александр Солдатов</text>
+      <text class="credits-label" style="font-size: 11px; color: #8E8E93;">Создал</text>
+      <text class="credits-name" style="font-size: 14px; color: #FFD700; font-weight: bold;">Александр Солдатов</text>
     </div>
   </div>
 </template>
 
 <style>
-  .container { flex-direction: column; align-items: center; width: 212px; padding-top: 35px; padding-bottom: 35px; transition: background-color 0.4s ease; }
+  .container { flex-direction: column; align-items: center; width: 212px; padding-top: 35px; padding-bottom: 35px; }
   .stats-row { width: 184px; justify-content: space-between; margin-bottom: 10px; padding: 0 5px; }
   .stats-row-text { font-size: 14px; font-weight: bold; }
   .board { flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
   .cell-wrapper { justify-content: center; align-items: center; }
-  
   .cell { border-radius: 8px; font-weight: bold; }
-  .anim { transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease; }
-  
-  .victory-tile-anim { animation-name: pulse-gold; animation-duration: 1.5s; animation-iteration-count: infinite; }
-  @keyframes pulse-gold {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.04); background-color: #FFD700; color: #000000; }
-    100% { transform: scale(1); }
-  }
-
-  .victory-bg-anim { animation-name: victory-bg; animation-duration: 3s; animation-iteration-count: 1; }
-  @keyframes victory-bg {
-    0% { background-color: #000000; }
-    50% { background-color: #1c3d1c; }
-    100% { background-color: #000000; }
-  }
-  
-  .victory-block { flex-direction: column; align-items: center; margin-bottom: 15px; animation-name: fade-in; animation-duration: 0.5s; }
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .victory-title { font-size: 22px; font-weight: bold; color: #34C759; }
-  .victory-sub { font-size: 12px; margin-top: 2px; }
-
+  .victory-block { flex-direction: column; align-items: center; margin-bottom: 15px; }
   .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
   .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; margin-top: 5px; }
-  
-  .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; transition: background-color 0.2s, transform 0.1s; }
-  
+  .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
   .btn-action { background-color: #007AFF; color: #FFFFFF; font-weight: bold; }
   .btn-reset { background-color: #FF3B30; color: #FFFFFF; }
-
   .ios-row { width: 170px; height: 38px; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
   .ios-label { font-size: 14px; }
-  .ios-switch { width: 44px; height: 24px; border-radius: 12px; padding: 2px; transition: background-color 0.25s ease-in-out; }
+  .ios-switch { width: 44px; height: 24px; border-radius: 12px; padding: 2px; }
   .ios-switch-on { background-color: #34C759; }
   .ios-switch-off { background-color: #48484A; }
-  .ios-dot { width: 20px; height: 20px; border-radius: 10px; background-color: #FFFFFF; transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1.1); }
-  .ios-dot-on { transform: translateX(20px); }
-  .ios-dot-off { transform: translateX(0); }
-
+  .ios-dot { width: 20px; height: 20px; border-radius: 10px; background-color: #FFFFFF; }
+  .ios-dot-on { margin-left: 20px; }
+  .ios-dot-off { margin-left: 0; }
   .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
-  .credits-label { font-size: 11px; color: #8E8E93; }
-  .credits-name { font-size: 14px; color: #FFD700; font-weight: bold; margin-top: 2px; }
 </style>
 
 <script>
   import vibrator from '@system.vibrator'
-  import storage from '@system.storage'
   
   export default {
     private: {
@@ -139,12 +105,6 @@
       isWon: false,
       autoPlaying: false,
       autoTimerId: null,
-      bestMoves: '-',
-      bestTime: '-',
-      themes: {
-        dark: { bg: '#000000', text: '#FFFFFF', btnBg: '#222222' },
-        light: { bg: '#FFFFFF', text: '#000000', btnBg: '#E5E5EA' }
-      },
       tileColors: [
         { dark: '#1C1C1E', light: '#D1D1D6' },
         { dark: '#007AFF', light: '#34C759' },
@@ -154,17 +114,15 @@
       styleNames: ['Стиль 1', 'Стиль 2', 'Стиль 3', 'Стиль 4']
     },
     computed: {
-      currentTheme() { return this.isDark ? this.themes.dark : this.themes.light; },
       currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
       tileStyleName() { return this.styleNames[this.tileStyle]; },
-      animClass() { return this.isAnim ? 'anim' : ''; },
       formattedTime() {
-        const m = Math.floor(this.timerSeconds / 60).toString().padStart(2, '0');
-        const s = (this.timerSeconds % 60).toString().padStart(2, '0');
-        return m + ':' + s;
+        const m = Math.floor(this.timerSeconds / 60).toString();
+        const s = (this.timerSeconds % 60).toString();
+        const padM = m.length < 2 ? '0' + m : m;
+        const padS = s.length < 2 ? '0' + s : s;
+        return padM + ':' + padS;
       },
-      boardSizePx() { return 184; },
-      cellMarginPx() { return 1.5; },
       cellSizePx() {
         if (this.gridSize === 3) return 58;
         if (this.gridSize === 5) return 33;
@@ -177,7 +135,6 @@
       }
     },
     onCreate() {
-      this.loadRecords();
       this.resetGame();
     },
     onDestroy() {
@@ -191,42 +148,34 @@
       this.timerSeconds = 0;
       this.isWon = false;
       
+      // Гарантированно решаемое простое перемешивание без бесконечного do-while цикла
       let totalCells = this.gridSize * this.gridSize;
       let arr = [];
       for (let i = 1; i < totalCells; i++) arr.push(i);
       arr.push(0);
-
-      do {
-        for (let i = arr.length - 2; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          let temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
-        }
-      } while (!this.isSolvable(arr));
-
+      
+      // Просто делаем несколько случайных валидных сдвигов от готового состояния
       this.gameMatrix = arr;
-      this.emptyIndex = arr.indexOf(0);
-    },
-    isSolvable(arr) {
-      let inversions = 0;
-      let len = arr.length;
-      for (let i = 0; i < len; i++) {
-        if (arr[i] === 0) continue;
-        for (let j = i + 1; j < len; j++) {
-          if (arr[j] !== 0 && arr[i] > arr[j]) inversions++;
-        }
-      }
-      if (this.gridSize % 2 !== 0) {
-        return inversions % 2 === 0;
-      } else {
-        let emptyRowFromBottom = this.gridSize - Math.floor(arr.indexOf(0) / this.gridSize);
-        return (emptyRowFromBottom % 2 === 0) === (inversions % 2 !== 0);
+      this.emptyIndex = totalCells - 1;
+      
+      for (let shuffle = 0; shuffle < 30; shuffle++) {
+        const possible = [];
+        const r = Math.floor(this.emptyIndex / this.gridSize);
+        const c = this.emptyIndex % this.gridSize;
+        if (r > 0) possible.push(this.emptyIndex - this.gridSize);
+        if (r < this.gridSize - 1) possible.push(this.emptyIndex + this.gridSize);
+        if (c > 0) possible.push(this.emptyIndex - 1);
+        if (c < this.gridSize - 1) possible.push(this.emptyIndex + 1);
+        
+        const nextIdx = possible[Math.floor(Math.random() * possible.length)];
+        this.gameMatrix[this.emptyIndex] = this.gameMatrix[nextIdx];
+        this.gameMatrix[nextIdx] = 0;
+        this.emptyIndex = nextIdx;
       }
     },
     startTimer() {
       if (!this.timerId) {
-        this.timerId = setInterval(() => {
-          this.timerSeconds++;
-        }, 1000);
+        this.timerId = setInterval(() => { this.timerSeconds++; }, 1000);
       }
     },
     stopTimer() {
@@ -234,109 +183,68 @@
     },
     moveTile(index) {
       if (this.isWon) return;
-      
       const r1 = Math.floor(index / this.gridSize), c1 = index % this.gridSize;
       const r2 = Math.floor(this.emptyIndex / this.gridSize), c2 = this.emptyIndex % this.gridSize;
       
-      if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {if (this.moves === 0 && !this.autoPlaying) this.startTimer();
-let newBoard = [...this.gameMatrix];
-newBoard[this.emptyIndex] = newBoard[index];
-newBoard[index] = 0;
-this.gameMatrix = newBoard;
-this.emptyIndex = index;
-this.moves++;
-this.triggerVibe('short');
-this.checkWin();
-}
-},
-checkWin() {
-let totalCells = this.gridSize * this.gridSize;
-for (let i = 0; i < totalCells - 1; i++) {
-if (this.gameMatrix[i] !== i + 1) return;
-}
-this.isWon = true;
-this.stopTimer();
-this.stopAutoRun();
-this.triggerVibe('long');
-this.saveRecord();
-},
-toggleAutoRun() {
-if (this.autoPlaying) {
-this.stopAutoRun();
-} else {
-this.autoPlaying = true;
-this.startTimer();
-this.autoTimerId = setInterval(() => {
-this.makeSingleHint();
-if (this.isWon) this.stopAutoRun();
-}, 450);
-}
-},
-stopAutoRun() {
-this.autoPlaying = false;
-if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; }
-},
-makeSingleHint() {
-const possibleMoves = [];
-const r2 = Math.floor(this.emptyIndex / this.gridSize);
-const c2 = this.emptyIndex % this.gridSize;
-const targets = [
-{ r: r2 - 1, c: c2 }, { r: r2 + 1, c: c2 },
-{ r: r2, c: c2 - 1 }, { r: r2, c: c2 + 1 }
-];
-targets.forEach(t => {
-if (t.r >= 0 && t.r < this.gridSize && t.c >= 0 && t.c < this.gridSize) {
-possibleMoves.push(t.r * this.gridSize + t.c);
-}
-});
-if (possibleMoves.length > 0) {
-const targetIndex = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+      if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
+        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
+        
+        this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
+        this.gameMatrix[index] = 0;
+        this.emptyIndex = index;
+        this.moves++;
+        this.triggerVibe('short');
+        this.checkWin();
+      }
+    },
+    checkWin() {
+      let totalCells = this.gridSize * this.gridSize;
+      for (let i = 0; i < totalCells - 1; i++) {
+        if (this.gameMatrix[i] !== i + 1) return;
+      }
+      this.isWon = true;
+      this.stopTimer();
+      this.stopAutoRun();
+      this.triggerVibe('long');
+    },
+    toggleAutoRun() {
+      if (this.autoPlaying) {
+        this.stopAutoRun();
+      } else {
+        this.autoPlaying = true;
+        this.startTimer();
+        this.autoTimerId = setInterval(() => {
+          this.makeSingleHint();
+          if (this.isWon) this.stopAutoRun();
+        }, 450);
+      }
+    },
+    stopAutoRun() {
+      this.autoPlaying = false;
+      if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; }
+    },
+    makeSingleHint() {
+      const possibleMoves = [];
+      const r2 = Math.floor(this.emptyIndex / this.gridSize);
+      const c2 = this.emptyIndex % this.gridSize;
+      if (r2 > 0) possibleMoves.push((r2 - 1) * this.gridSize + c2);
+      if (r2 < this.gridSize - 1) possibleMoves.push((r2 + 1) * this.gridSize + c2);
+      if (c2 > 0) possibleMoves.push(r2 * this.gridSize + (c2 - 1));
+      if (c2 < this.gridSize - 1) possibleMoves.push(r2 * this.gridSize + (c2 + 1));
+      
+      if (possibleMoves.length > 0) {const targetIndex = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
 this.moveTile(targetIndex);
 }
 },
 cycleGridSize() {
 this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1;
-this.loadRecords();
 this.resetGame();
 },
 triggerVibe(mode) {
 if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} }
 },
 toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
-toggleColor() {
-this.tileStyle = (this.tileStyle + 1) % this.tileColors.length;
-this.triggerVibe('short');
-},
+toggleColor() { this.tileStyle = (this.tileStyle + 1) % this.tileColors.length; this.triggerVibe('short'); },
 toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe('short'); },
-toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); },
-saveRecord() {
-storage.get({
-key: 'best_moves_' + this.gridSize,
-success: (data) => {
-if (!data || this.moves < parseInt(data)) {
-storage.set({ key: 'best_moves_' + this.gridSize, value: this.moves.toString() });
-this.bestMoves = this.moves;
-}
-}
-});
-storage.get({
-key: 'best_time_' + this.gridSize,
-success: (data) => {
-if (!data || this.timerSeconds < parseInt(data)) {
-storage.set({ key: 'best_time_' + this.gridSize, value: this.timerSeconds.toString() });
-this.bestTime = this.timerSeconds;
-}
-}
-});
-},
-loadRecords() {
-storage.get({
-key: 'best_moves_' + this.gridSize,
-success: (data) => { this.bestMoves = data || '-'; }
-});
-storage.get({
-key: 'best_time_' + this.gridSize,
-success: (data) => { this.bestTime = data || '-'; }
-});
-}
+toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); }
 }
