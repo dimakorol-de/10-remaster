@@ -1,7 +1,7 @@
 <template>
   <div class="container" style="background-color: {{ isDark ? '#000000' : '#FFFFFF' }};">
     
-    <!-- ЭКРАН 1: ИГРОВОЙ ПРОЦЕСС -->
+    <!-- ЭКРАН ИГРЫ -->
     <div if="{{ !showSettingsMenu }}" class="game-screen">
       <!-- Игровое поле -->
       <div class="board" style="width: 184px;">
@@ -17,43 +17,37 @@
         </div>
       </div>
 
-      <!-- Счётчики перенесены строго ПОД игру -->
+      <!-- Счётчики времени, ходов и попыток -->
       <div class="stats-row">
-        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">⏱ {{ formattedTime }}</text>
-        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">👣 {{ moves }}</text>
-        <text class="stats-row-text" style="color: #FF3B30;">❤️ {{ attempts }}</text>
+        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">ВРЕМЯ {{ formattedTime }}</text>
+        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">ШАГИ {{ moves }}</text>
+        <text class="stats-row-text" style="color: #FF3B30;">ЖИЗНИ {{ attempts }}</text>
       </div>
 
       <!-- Экран Победы -->
       <div if="{{ isWon }}" class="victory-block">
-        <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА!</text>
+        <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА</text>
       </div>
 
-      <!-- Кнопка вызова меню (Окрашивается в цвет выбранного стиля) -->
-      <div class="menu-trigger-zone">
-        <input 
-          type="button" 
-          class="btn btn-menu-toggle" 
-          style="background-color: {{ currentTileColor }}; color: #FFFFFF; font-weight: bold;" 
-          value="⚙️ Меню настроек" 
-          onclick="openSettings" 
-        />
+      <!-- Быстрые действия на главном экране -->
+      <div class="menu">
+        <input type="button" class="btn btn-action" value="{{ autoPlaying ? 'Стоп Автоход' : 'Автоход' }}" onclick="toggleAutoRun" />
+        <input type="button" class="btn btn-action" value="Подсказать ход" onclick="makeSingleHint" />
+        <input type="button" class="btn btn-menu-toggle" style="background-color: {{ currentTileColor }}; color: #FFFFFF;" value="Настройки" onclick="openSettings" />
       </div>
     </div>
 
-    <!-- ЭКРАН 2: ОТДЕЛЬНОЕ МЕНЮ НАСТРОЕК -->
+    <!-- ЭКРАН НАСТРОЕК -->
     <div if="{{ showSettingsMenu }}" class="settings-screen">
       <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
       
-      <input type="button" class="btn btn-action" value="{{ autoPlaying ? 'Стоп Автоход' : 'Запустить Автоход' }}" onclick="toggleAutoRun" />
-      <input type="button" class="btn btn-action" value="💡 Подсказать ход" onclick="makeSingleHint" />
-      <input type="button" class="btn btn-reset" value="🔄 Новая игра" onclick="clickResetGame" />
+      <input type="button" class="btn btn-reset" value="Новая игра" onclick="clickResetGame" />
       
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Цвет: {{ tileStyleName }}" onclick="toggleColor" />
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
       
-      <!-- iOS Переключатели -->
+      <!-- Переключатели -->
       <div class="ios-row" onclick="toggleAnim">
         <text class="ios-label" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Анимация</text>
         <div class="ios-switch {{ isAnim ? 'ios-switch-on' : 'ios-switch-off' }}">
@@ -68,13 +62,12 @@
         </div>
       </div>
 
-      <!-- Кнопка возврата к игре -->
-      <input type="button" class="btn btn-back" value="⬅️ Вернуться" onclick="closeSettings" />
+      <input type="button" class="btn btn-back" value="Вернуться" onclick="closeSettings" />
     </div>
 
     <div class="credits">
-      <text class="credits-label" style="font-size: 11px; color: #8E8E93;">Создал</text>
-      <text class="credits-name" style="font-size: 14px; color: #FFD700; font-weight: bold;">Александр Солдатов</text>
+      <text class="credits-label" style="color: #8E8E93;">Разработчик</text>
+      <text class="credits-name" style="color: #FFD700;">Александр Солдатов</text>
     </div>
   </div>
 </template>
@@ -84,27 +77,24 @@
   .game-screen { flex-direction: column; align-items: center; width: 212px; }
   .settings-screen { flex-direction: column; align-items: center; width: 212px; }
   
-  .stats-row { width: 184px; justify-content: space-between; margin-top: 10px; margin-bottom: 10px; padding: 0 5px; }
-  .stats-row-text { font-size: 14px; font-weight: bold; }
+  .stats-row { width: 184px; justify-content: space-between; margin-top: 12px; margin-bottom: 6px; padding: 0 2px; }
+  .stats-row-text { font-size: 11px; font-weight: bold; }
   
   .board { flex-wrap: wrap; justify-content: center; }
   .cell-wrapper { justify-content: center; align-items: center; }
   .cell { border-radius: 8px; font-weight: bold; }
   
-  .victory-block { flex-direction: column; align-items: center; margin-bottom: 10px; }
+  .victory-block { flex-direction: column; align-items: center; margin-bottom: 8px; }
   
-  .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
-  .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; text-align: center; }
+  .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 5px; }
+  .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; text-align: center; }
   
-  .menu-trigger-zone { margin-top: 10px; width: 212px; justify-content: center; }
-  
-  .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
-  .btn-menu-toggle { width: 170px; height: 38px; border-radius: 10px; font-size: 14px; }
-  .btn-action { background-color: #007AFF; color: #FFFFFF; font-weight: bold; }
+  .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; font-weight: bold; }
+  .btn-menu-toggle { width: 170px; height: 36px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
+  .btn-action { background-color: #007AFF; color: #FFFFFF; }
   .btn-reset { background-color: #FF3B30; color: #FFFFFF; }
-  .btn-back { background-color: #8E8E93; color: #FFFFFF; margin-top: 10px; }
+  .btn-back { background-color: #8E8E93; color: #FFFFFF; margin-top: 12px; }
 
-  /* iOS переключатели */
   .ios-row { width: 170px; height: 38px; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
   .ios-label { font-size: 14px; }
   .ios-switch { width: 44px; height: 24px; border-radius: 12px; padding: 2px; }
@@ -115,6 +105,8 @@
   .ios-dot-off { margin-left: 0; }
   
   .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
+  .credits-label { font-size: 10px; }
+  .credits-name { font-size: 13px; font-weight: bold; margin-top: 1px; }
 </style>
 
 <script>
@@ -135,15 +127,17 @@
       isWon: false,
       autoPlaying: false,
       autoTimerId: null,
-      showSettingsMenu: false, // Флаг переключения экранов
-      attempts: 5,            // Счётчик попыток
+      showSettingsMenu: false,
+      attempts: 5,
+      // Добавлен 5-й цвет
       tileColors: [
         { dark: '#1C1C1E', light: '#D1D1D6' },
         { dark: '#007AFF', light: '#34C759' },
         { dark: '#8A2BE2', light: '#FF007F' },
-        { dark: '#FF4500', light: '#FFA500' }
+        { dark: '#FF4500', light: '#FFA500' },
+        { dark: '#00FF66', light: '#00A344' }
       ],
-      styleNames: ['Стиль 1', 'Стиль 2', 'Стиль 3', 'Стиль 4']
+      styleNames: ['Стиль 1', 'Стиль 2', 'Стиль 3', 'Стиль 4', 'Стиль 5']
     },
     computed: {
       currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
@@ -232,16 +226,17 @@
       const r2 = Math.floor(this.emptyIndex / this.gridSize), c2 = this.emptyIndex % this.gridSize;
       
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        if (this.moves === 0 && !this.autoPlaying) this.startTimer();this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
-this.gameMatrix[index] = 0;
-this.emptyIndex = index;
-this.moves++;
-this.triggerVibe('short');
-this.checkWin();
-}
-},
-checkWin() {
-let totalCells = this.gridSize * this.gridSize;
+        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
+        
+        this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
+        this.gameMatrix[index] = 0;
+        this.emptyIndex = index;
+        this.moves++;
+        this.triggerVibe('short');
+        this.checkWin();
+      }
+    },
+    checkWin() {let totalCells = this.gridSize * this.gridSize;
 for (let i = 0; i < totalCells - 1; i++) {
 if (this.gameMatrix[i] !== i + 1) return;
 }
@@ -291,4 +286,3 @@ toggleColor() { this.tileStyle = (this.tileStyle + 1) % this.tileColors.length; 
 toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe('short'); },
 toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); }
 }
-        
