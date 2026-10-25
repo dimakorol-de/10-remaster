@@ -38,7 +38,11 @@ jobs:
           draw = ImageDraw.Draw(img)
           draw.rounded_rectangle((0, 0, 192, 192), radius=40, fill='#1C1C1E')
           draw.text((96, 96), "15", fill='#FFFFFF', anchor="mm", font_size=90)
+          
+          # Сохраняем под обоими возможными именами для manifest.json
           img.save('src/common/icon.png')
+          img.save('src/common/logo.png')
+          print("Иконки icon.png и logo.png успешно созданы!")
           EOF
 
       - name: Install and Build Remaster
