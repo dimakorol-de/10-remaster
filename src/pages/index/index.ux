@@ -1,71 +1,44 @@
 <template>
   <div class="container" style="background-color: {{ isDark ? '#000000' : '#FFFFFF' }};">
     
-    <!-- ЭКРАН ИГРЫ -->
-    <div if="{{ !showSettingsMenu }}" class="game-screen">
-      <!-- Игровое поле -->
-      <div class="board" style="width: 184px;">
-        <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: 1.5px;">
-          <input 
-            if="{{item !== 0}}" 
-            type="button" 
-            class="cell" 
-            style="background-color: {{ currentTileColor }}; color: {{ isDark ? '#FFFFFF' : '#000000' }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
-            value="{{item}}" 
-            onclick="moveTile(index)"
-          />
-        </div>
-      </div>
-
-      <!-- Счётчики времени, ходов и попыток -->
-      <div class="stats-row">
-        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">ВРЕМЯ {{ formattedTime }}</text>
-        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">ШАГИ {{ moves }}</text>
-        <text class="stats-row-text" style="color: #FF3B30;">ЖИЗНИ {{ attempts }}</text>
-      </div>
-
-      <!-- Экран Победы -->
-      <div if="{{ isWon }}" class="victory-block">
-        <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА</text>
-      </div>
-
-      <!-- Быстрые действия на главном экране -->
-      <div class="menu">
-        <input type="button" class="btn btn-action" value="{{ autoPlaying ? 'Стоп Автоход' : 'Автоход' }}" onclick="toggleAutoRun" />
-        <input type="button" class="btn btn-action" value="Подсказать ход" onclick="makeSingleHint" />
-        <input type="button" class="btn btn-menu-toggle" style="background-color: {{ currentTileColor }}; color: #FFFFFF;" value="Настройки" onclick="openSettings" />
+    <!-- Игровое поле -->
+    <div class="board" style="width: 184px;">
+      <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: 1.5px;">
+        <input 
+          if="{{item !== 0}}" 
+          type="button" 
+          class="cell" 
+          style="background-color: {{ currentTileColor }}; color: {{ isDark ? '#FFFFFF' : '#000000' }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
+          value="{{item}}" 
+          onclick="moveTile(index)"
+        />
       </div>
     </div>
 
-    <!-- ЭКРАН НАСТРОЕК -->
-    <div if="{{ showSettingsMenu }}" class="settings-screen">
-      <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
-      
-      <input type="button" class="btn btn-reset" value="Новая игра" onclick="clickResetGame" />
-      
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Цвет: {{ tileStyleName }}" onclick="toggleColor" />
-      <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
-      
-      <!-- Переключатели -->
-      <div class="ios-row" onclick="toggleAnim">
-        <text class="ios-label" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Анимация</text>
-        <div class="ios-switch {{ isAnim ? 'ios-switch-on' : 'ios-switch-off' }}">
-          <div class="ios-dot {{ isAnim ? 'ios-dot-on' : 'ios-dot-off' }}"></div>
-        </div>
-      </div>
-
-      <div class="ios-row" onclick="toggleVib">
-        <text class="ios-label" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Вибрация</text>
-        <div class="ios-switch {{ isVib ? 'ios-switch-on' : 'ios-switch-off' }}">
-          <div class="ios-dot {{ isVib ? 'ios-dot-on' : 'ios-dot-off' }}"></div>
-        </div>
-      </div>
-
-      <input type="button" class="btn btn-back" value="Вернуться" onclick="closeSettings" />
+    <!-- Счётчики времени и ходов под игрой -->
+    <div class="stats-row">
+      <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">ВРЕМЯ {{ formattedTime }}</text>
+      <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">ШАГИ {{ moves }}</text>
     </div>
 
-    <div class="credits">
+    <!-- Экран Победы -->
+    <div if="{{ isWon }}" class="victory-block">
+      <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА</text>
+    </div>
+
+    <!-- Одна большая кнопка, которая красится в цвет стиля -->
+    <div class="menu">
+      <input 
+        type="button" 
+        class="btn btn-menu-toggle" 
+        style="background-color: {{ currentTileColor }}; color: #FFFFFF;" 
+        value="Новая игра" 
+        onclick="clickResetGame" 
+      />
+    </div>
+
+    <!-- Скрытое переключение стилей по тапу на имя -->
+    <div class="credits" onclick="toggleColor">
       <text class="credits-label" style="color: #8E8E93;">Разработчик</text>
       <text class="credits-name" style="color: #FFD700;">Александр Солдатов</text>
     </div>
@@ -74,10 +47,8 @@
 
 <style>
   .container { flex-direction: column; align-items: center; width: 212px; padding-top: 35px; padding-bottom: 35px; }
-  .game-screen { flex-direction: column; align-items: center; width: 212px; }
-  .settings-screen { flex-direction: column; align-items: center; width: 212px; }
   
-  .stats-row { width: 184px; justify-content: space-between; margin-top: 12px; margin-bottom: 6px; padding: 0 2px; }
+  .stats-row { width: 150px; justify-content: space-between; margin-top: 15px; margin-bottom: 10px; padding: 0 2px; }
   .stats-row-text { font-size: 11px; font-weight: bold; }
   
   .board { flex-wrap: wrap; justify-content: center; }
@@ -87,24 +58,11 @@
   .victory-block { flex-direction: column; align-items: center; margin-bottom: 8px; }
   
   .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 5px; }
-  .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; text-align: center; }
   
   .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; font-weight: bold; }
-  .btn-menu-toggle { width: 170px; height: 36px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
-  .btn-action { background-color: #007AFF; color: #FFFFFF; }
-  .btn-reset { background-color: #FF3B30; color: #FFFFFF; }
-  .btn-back { background-color: #8E8E93; color: #FFFFFF; margin-top: 12px; }
-
-  .ios-row { width: 170px; height: 38px; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
-  .ios-label { font-size: 14px; }
-  .ios-switch { width: 44px; height: 24px; border-radius: 12px; padding: 2px; }
-  .ios-switch-on { background-color: #34C759; }
-  .ios-switch-off { background-color: #48484A; }
-  .ios-dot { width: 20px; height: 20px; border-radius: 10px; background-color: #FFFFFF; }
-  .ios-dot-on { margin-left: 20px; }
-  .ios-dot-off { margin-left: 0; }
+  .btn-menu-toggle { width: 170px; height: 42px; border-radius: 10px; font-size: 15px; font-weight: bold; }
   
-  .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
+  .credits { flex-direction: column; align-items: center; margin-top: 30px; width: 180px; }
   .credits-label { font-size: 10px; }
   .credits-name { font-size: 13px; font-weight: bold; margin-top: 1px; }
 </style>
@@ -115,32 +73,24 @@
   export default {
     private: {
       gameMatrix: [],
-      gridSize: 4,
+      gridSize: 4, 
       emptyIndex: 15,
       moves: 0,
       timerSeconds: 0,
       timerId: null,
       isDark: true,
-      tileStyle: 0,
-      isAnim: true,
-      isVib: true,
+      tileStyle: 4, 
       isWon: false,
-      autoPlaying: false,
-      autoTimerId: null,
-      showSettingsMenu: false,
-      attempts: 5,
       tileColors: [
         { dark: '#1C1C1E', light: '#D1D1D6' },
         { dark: '#007AFF', light: '#34C759' },
         { dark: '#8A2BE2', light: '#FF007F' },
         { dark: '#FF4500', light: '#FFA500' },
         { dark: '#00FF66', light: '#00A344' }
-      ],
-      styleNames: ['Стиль 1', 'Стиль 2', 'Стиль 3', 'Стиль 4', 'Стиль 5']
+      ]
     },
     computed: {
       currentTileColor() { return this.tileColors[this.tileStyle][this.isDark ? 'dark' : 'light']; },
-      tileStyleName() { return this.styleNames[this.tileStyle]; },
       formattedTime() {
         const m = Math.floor(this.timerSeconds / 60).toString();
         const s = (this.timerSeconds % 60).toString();
@@ -148,42 +98,21 @@
         const padS = s.length < 2 ? '0' + s : s;
         return padM + ':' + padS;
       },
-      cellSizePx() {
-        if (this.gridSize === 3) return 58;
-        if (this.gridSize === 5) return 33;
-        return 43;
-      },
-      fontSizePx() {
-        if (this.gridSize === 3) return 24;
-        if (this.gridSize === 5) return 14;
-        return 18;
-      }
+      cellSizePx() { return 43; },
+      fontSizePx() { return 18; }
     },
     onCreate() {
       this.resetGame();
     },
     onDestroy() {
       this.stopTimer();
-      this.stopAutoRun();
-    },
-    openSettings() {
-      this.showSettingsMenu = true;
-      this.triggerVibe('short');
-    },
-    closeSettings() {
-      this.showSettingsMenu = false;
-      this.triggerVibe('short');
     },
     clickResetGame() {
-      if (this.attempts > 0) {
-        this.attempts--;
-      }
       this.resetGame();
-      this.closeSettings();
+      this.triggerVibe('short');
     },
     resetGame() {
       this.stopTimer();
-      this.stopAutoRun();
       this.moves = 0;
       this.timerSeconds = 0;
       this.isWon = false;
@@ -225,7 +154,7 @@
       const r2 = Math.floor(this.emptyIndex / this.gridSize), c2 = this.emptyIndex % this.gridSize;
       
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
+        if (this.moves === 0) this.startTimer();
         
         this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
         this.gameMatrix[index] = 0;
@@ -235,53 +164,21 @@
         this.checkWin();
       }
     },
-    checkWin() {let totalCells = this.gridSize * this.gridSize;
-for (let i = 0; i < totalCells - 1; i++) {
-if (this.gameMatrix[i] !== i + 1) return;
-}
-this.isWon = true;
-this.stopTimer();
-this.stopAutoRun();
-this.triggerVibe('long');
-},
-toggleAutoRun() {
-if (this.autoPlaying) {
-this.stopAutoRun();
-} else {
-this.autoPlaying = true;
-this.startTimer();
-this.autoTimerId = setInterval(() => {
-this.makeSingleHint();
-if (this.isWon) this.stopAutoRun();
-}, 450);
-}
-},
-stopAutoRun() {
-if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; }
-this.autoPlaying = false;
-},
-makeSingleHint() {
-const possibleMoves = [];
-const r2 = Math.floor(this.emptyIndex / this.gridSize);
-const c2 = this.emptyIndex % this.gridSize;
-if (r2 > 0) possibleMoves.push((r2 - 1) * this.gridSize + c2);
-if (r2 < this.gridSize - 1) possibleMoves.push((r2 + 1) * this.gridSize + c2);
-if (c2 > 0) possibleMoves.push(r2 * this.gridSize + (c2 - 1));
-if (c2 < this.gridSize - 1) possibleMoves.push(r2 * this.gridSize + (c2 + 1));
-if (possibleMoves.length > 0) {
-const targetIndex = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-this.moveTile(targetIndex);
-}
-},
-cycleGridSize() {
-this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1;
-this.resetGame(); // Мгновенное перестроение поля при каждом тапе по кнопке!
-},
-triggerVibe(mode) {
-if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} }
-},
-toggleTheme() { this.isDark = !this.isDark; this.triggerVibe('short'); },
-toggleColor() { this.tileStyle = (this.tileStyle + 1) % this.tileColors.length; this.triggerVibe('short'); },
-toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe('short'); },
-toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); }
-}
+    checkWin() {
+      let totalCells = this.gridSize * this.gridSize;
+      for (let i = 0; i < totalCells - 1; i++) {
+        if (this.gameMatrix[i] !== i + 1) return;
+      }
+      this.isWon = true;
+      this.stopTimer();
+      this.triggerVibe('long');
+    },
+    triggerVibe(mode) {
+      try { vibrator.vibrate({ mode: mode }); } catch(e){}
+    },
+    toggleColor() { 
+      this.tileStyle = (this.tileStyle + 1) % this.tileColors.length; 
+      this.triggerVibe('short'); 
+    }
+  }
+</script>
