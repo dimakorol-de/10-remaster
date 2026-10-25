@@ -28,19 +28,17 @@
         <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА</text>
       </div>
 
-      <!-- Управление на главном экране -->
+      <!-- Главное игровое управление (Вынесено к плашкам) -->
       <div class="menu">
-        <input type="button" class="btn" style="background-color: {{ currentTileColor }}; color: #FFFFFF;" value="Подсказать ход" onclick="makeSingleHint" />
-        <input type="button" class="btn btn-action" value="Настройки" onclick="openSettings" />
+        <input type="button" class="btn btn-action" value="{{ autoPlaying ? 'Стоп Автоход' : 'Автоход' }}" onclick="toggleAutoRun" />
+        <input type="button" class="btn" style="background-color: {{ currentTileColor }}; color: #FFFFFF;" value="Новая игра" onclick="clickResetGame" />
+        <input type="button" class="btn btn-back" style="margin-top: 5px;" value="Настройки" onclick="openSettings" />
       </div>
     </div>
 
-    <!-- ЭКРАН 2: ОТДЕЛЬНОЕ ПОЛНОЦЕННОЕ МЕНЮ НАСТРОЕК -->
+    <!-- ЭКРАН 2: ОТДЕЛЬНОЕ МЕНЮ НАСТРОЕК (Системное) -->
     <div if="{{ showSettingsMenu }}" class="settings-screen">
       <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
-      
-      <input type="button" class="btn btn-action" value="{{ autoPlaying ? 'Стоп Автоход' : 'Запустить Автоход' }}" onclick="toggleAutoRun" />
-      <input type="button" class="btn btn-reset" value="Новая игра" onclick="clickResetGame" />
       
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Цвет: {{ tileStyleName }}" onclick="toggleColor" />
@@ -62,7 +60,7 @@
       </div>
 
       <!-- Кнопка возврата к игре -->
-      <input type="button" class="btn btn-back" value="Вернуться" onclick="closeSettings" />
+      <input type="button" class="btn btn-back" style="margin-top: 12px;" value="Вернуться" onclick="closeSettings" />
     </div>
 
     <div class="credits">
@@ -91,8 +89,7 @@
   
   .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; font-weight: bold; }
   .btn-action { background-color: #007AFF; color: #FFFFFF; }
-  .btn-reset { background-color: #FF3B30; color: #FFFFFF; }
-  .btn-back { background-color: #8E8E93; color: #FFFFFF; margin-top: 12px; }
+  .btn-back { background-color: #8E8E93; color: #FFFFFF; }
 
   /* iOS переключатели */
   .ios-row { width: 170px; height: 38px; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
@@ -121,7 +118,7 @@
       timerSeconds: 0,
       timerId: null,
       isDark: true,
-      tileStyle: 4, // Стартуем сразу с сочного 5-го стиля (изумрудный неон)
+      tileStyle: 4, // По умолчанию включаем 5-й сочный изумрудный неон
       isAnim: true,
       isVib: true,
       isWon: false,
@@ -175,7 +172,7 @@
     },
     clickResetGame() {
       this.resetGame();
-      this.closeSettings();
+      this.triggerVibe('short');
     },
     resetGame() {
       this.stopTimer();
@@ -235,12 +232,12 @@
       let totalCells = this.gridSize * this.gridSize;
       for (let i = 0; i < totalCells - 1; i++) {
         if (this.gameMatrix[i] !== i + 1) return;
-      }this.isWon = true;
-this.stopTimer();
-this.stopAutoRun();
-this.triggerVibe('long');
-},
-toggleAutoRun() {
+      }
+      this.isWon = true;
+      this.stopTimer();
+      this.stopAutoRun();
+      this.triggerVibe('long');
+    },toggleAutoRun() {
 if (this.autoPlaying) {
 this.stopAutoRun();
 } else {
@@ -271,7 +268,7 @@ this.moveTile(targetIndex);
 },
 cycleGridSize() {
 this.gridSize = this.gridSize === 5 ? 3 : this.gridSize + 1;
-this.resetGame(); // Мгновенное и чёткое перестроение сетки прямо в памяти настроек!
+this.resetGame();
 },
 triggerVibe(mode) {
 if (this.isVib) { try { vibrator.vibrate({ mode: mode }); } catch(e){} }
