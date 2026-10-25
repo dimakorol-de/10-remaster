@@ -1,46 +1,59 @@
 <template>
   <div class="container" style="background-color: {{ isDark ? '#000000' : '#FFFFFF' }};">
-    <!-- Счётчики игры -->
-    <div class="stats-row">
-      <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">⏱ {{ formattedTime }}</text>
-      <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">👣 {{ moves }}</text>
-    </div>
+    
+    <!-- ЭКРАН 1: ИГРОВОЙ ПРОЦЕСС -->
+    <div if="{{ !showSettingsMenu }}" class="game-screen">
+      <!-- Игровое поле -->
+      <div class="board" style="width: 184px;">
+        <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: 1.5px;">
+          <input 
+            if="{{item !== 0}}" 
+            type="button" 
+            class="cell" 
+            style="background-color: {{ currentTileColor }}; color: {{ isDark ? '#FFFFFF' : '#000000' }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
+            value="{{item}}" 
+            onclick="moveTile(index)"
+          />
+        </div>
+      </div>
 
-    <!-- Игровое поле -->
-    <div class="board" style="width: 184px;">
-      <div for="{{(index, item) in gameMatrix}}" class="cell-wrapper" style="width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; margin: 1.5px;">
+      <!-- Счётчики перенесены строго ПОД игру -->
+      <div class="stats-row">
+        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">⏱ {{ formattedTime }}</text>
+        <text class="stats-row-text" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">👣 {{ moves }}</text>
+        <text class="stats-row-text" style="color: #FF3B30;">❤️ {{ attempts }}</text>
+      </div>
+
+      <!-- Экран Победы -->
+      <div if="{{ isWon }}" class="victory-block">
+        <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА!</text>
+      </div>
+
+      <!-- Кнопка вызова меню (Окрашивается в цвет выбранного стиля) -->
+      <div class="menu-trigger-zone">
         <input 
-          if="{{item !== 0}}" 
           type="button" 
-          class="cell" 
-          style="background-color: {{ currentTileColor }}; color: {{ isDark ? '#FFFFFF' : '#000000' }}; width: {{ cellSizePx }}px; height: {{ cellSizePx }}px; font-size: {{ fontSizePx }}px;"
-          value="{{item}}" 
-          onclick="moveTile(index)"
+          class="btn btn-menu-toggle" 
+          style="background-color: {{ currentTileColor }}; color: #FFFFFF; font-weight: bold;" 
+          value="⚙️ Меню настроек" 
+          onclick="openSettings" 
         />
       </div>
     </div>
 
-    <!-- Экран Победы -->
-    <div if="{{ isWon }}" class="victory-block">
-      <text class="victory-title" style="color: #34C759; font-size: 22px; font-weight: bold;">ПОБЕДА!</text>
-    </div>
-
-    <!-- Управление Автоходом -->
-    <div class="menu">
+    <!-- ЭКРАН 2: ОТДЕЛЬНОЕ МЕНЮ НАСТРОЕК -->
+    <div if="{{ showSettingsMenu }}" class="settings-screen">
+      <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
+      
       <input type="button" class="btn btn-action" value="{{ autoPlaying ? 'Стоп Автоход' : 'Запустить Автоход' }}" onclick="toggleAutoRun" />
       <input type="button" class="btn btn-action" value="💡 Подсказать ход" onclick="makeSingleHint" />
-      <input type="button" class="btn btn-reset" value="🔄 Новая игра" onclick="resetGame" />
-    </div>
-
-    <!-- Настройки -->
-    <div class="menu">
-      <text class="menu-title" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Настройки</text>
+      <input type="button" class="btn btn-reset" value="🔄 Новая игра" onclick="clickResetGame" />
       
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Режим: {{ gridSize }}x{{ gridSize }}" onclick="cycleGridSize" />
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Цвет: {{ tileStyleName }}" onclick="toggleColor" />
       <input type="button" class="btn" style="background-color: {{ isDark ? '#222222' : '#E5E5EA' }}; color: {{ isDark ? '#FFFFFF' : '#000000' }};" value="Тема: {{ isDark ? 'Темная' : 'Светлая' }}" onclick="toggleTheme" />
       
-      <!-- Упрощенные переключатели без псевдоклассов -->
+      <!-- iOS Переключатели -->
       <div class="ios-row" onclick="toggleAnim">
         <text class="ios-label" style="color: {{ isDark ? '#FFFFFF' : '#000000' }};">Анимация</text>
         <div class="ios-switch {{ isAnim ? 'ios-switch-on' : 'ios-switch-off' }}">
@@ -54,6 +67,9 @@
           <div class="ios-dot {{ isVib ? 'ios-dot-on' : 'ios-dot-off' }}"></div>
         </div>
       </div>
+
+      <!-- Кнопка возврата к игре -->
+      <input type="button" class="btn btn-back" value="⬅️ Вернуться" onclick="closeSettings" />
     </div>
 
     <div class="credits">
@@ -65,17 +81,30 @@
 
 <style>
   .container { flex-direction: column; align-items: center; width: 212px; padding-top: 35px; padding-bottom: 35px; }
-  .stats-row { width: 184px; justify-content: space-between; margin-bottom: 10px; padding: 0 5px; }
+  .game-screen { flex-direction: column; align-items: center; width: 212px; }
+  .settings-screen { flex-direction: column; align-items: center; width: 212px; }
+  
+  .stats-row { width: 184px; justify-content: space-between; margin-top: 10px; margin-bottom: 10px; padding: 0 5px; }
   .stats-row-text { font-size: 14px; font-weight: bold; }
-  .board { flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+  
+  .board { flex-wrap: wrap; justify-content: center; }
   .cell-wrapper { justify-content: center; align-items: center; }
   .cell { border-radius: 8px; font-weight: bold; }
-  .victory-block { flex-direction: column; align-items: center; margin-bottom: 15px; }
+  
+  .victory-block { flex-direction: column; align-items: center; margin-bottom: 10px; }
+  
   .menu { flex-direction: column; align-items: center; width: 180px; margin-top: 10px; }
-  .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; margin-top: 5px; }
+  .menu-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; text-align: center; }
+  
+  .menu-trigger-zone { margin-top: 10px; width: 212px; justify-content: center; }
+  
   .btn { width: 170px; height: 35px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
+  .btn-menu-toggle { width: 170px; height: 38px; border-radius: 10px; font-size: 14px; }
   .btn-action { background-color: #007AFF; color: #FFFFFF; font-weight: bold; }
   .btn-reset { background-color: #FF3B30; color: #FFFFFF; }
+  .btn-back { background-color: #8E8E93; color: #FFFFFF; margin-top: 10px; }
+
+  /* iOS переключатели */
   .ios-row { width: 170px; height: 38px; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
   .ios-label { font-size: 14px; }
   .ios-switch { width: 44px; height: 24px; border-radius: 12px; padding: 2px; }
@@ -84,6 +113,7 @@
   .ios-dot { width: 20px; height: 20px; border-radius: 10px; background-color: #FFFFFF; }
   .ios-dot-on { margin-left: 20px; }
   .ios-dot-off { margin-left: 0; }
+  
   .credits { flex-direction: column; align-items: center; margin-top: 25px; width: 180px; }
 </style>
 
@@ -105,6 +135,8 @@
       isWon: false,
       autoPlaying: false,
       autoTimerId: null,
+      showSettingsMenu: false, // Флаг переключения экранов
+      attempts: 5,            // Счётчик попыток
       tileColors: [
         { dark: '#1C1C1E', light: '#D1D1D6' },
         { dark: '#007AFF', light: '#34C759' },
@@ -141,6 +173,21 @@
       this.stopTimer();
       this.stopAutoRun();
     },
+    openSettings() {
+      this.showSettingsMenu = true;
+      this.triggerVibe('short');
+    },
+    closeSettings() {
+      this.showSettingsMenu = false;
+      this.triggerVibe('short');
+    },
+    clickResetGame() {
+      if (this.attempts > 0) {
+        this.attempts--;
+      }
+      this.resetGame();
+      this.closeSettings();
+    },
     resetGame() {
       this.stopTimer();
       this.stopAutoRun();
@@ -148,13 +195,11 @@
       this.timerSeconds = 0;
       this.isWon = false;
       
-      // Гарантированно решаемое простое перемешивание без бесконечного do-while цикла
       let totalCells = this.gridSize * this.gridSize;
       let arr = [];
       for (let i = 1; i < totalCells; i++) arr.push(i);
       arr.push(0);
       
-      // Просто делаем несколько случайных валидных сдвигов от готового состояния
       this.gameMatrix = arr;
       this.emptyIndex = totalCells - 1;
       
@@ -187,52 +232,50 @@
       const r2 = Math.floor(this.emptyIndex / this.gridSize), c2 = this.emptyIndex % this.gridSize;
       
       if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1) {
-        if (this.moves === 0 && !this.autoPlaying) this.startTimer();
-        
-        this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
-        this.gameMatrix[index] = 0;
-        this.emptyIndex = index;
-        this.moves++;
-        this.triggerVibe('short');
-        this.checkWin();
-      }
-    },
-    checkWin() {
-      let totalCells = this.gridSize * this.gridSize;
-      for (let i = 0; i < totalCells - 1; i++) {
-        if (this.gameMatrix[i] !== i + 1) return;
-      }
-      this.isWon = true;
-      this.stopTimer();
-      this.stopAutoRun();
-      this.triggerVibe('long');
-    },
-    toggleAutoRun() {
-      if (this.autoPlaying) {
-        this.stopAutoRun();
-      } else {
-        this.autoPlaying = true;
-        this.startTimer();
-        this.autoTimerId = setInterval(() => {
-          this.makeSingleHint();
-          if (this.isWon) this.stopAutoRun();
-        }, 450);
-      }
-    },
-    stopAutoRun() {
-      this.autoPlaying = false;
-      if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; }
-    },
-    makeSingleHint() {
-      const possibleMoves = [];
-      const r2 = Math.floor(this.emptyIndex / this.gridSize);
-      const c2 = this.emptyIndex % this.gridSize;
-      if (r2 > 0) possibleMoves.push((r2 - 1) * this.gridSize + c2);
-      if (r2 < this.gridSize - 1) possibleMoves.push((r2 + 1) * this.gridSize + c2);
-      if (c2 > 0) possibleMoves.push(r2 * this.gridSize + (c2 - 1));
-      if (c2 < this.gridSize - 1) possibleMoves.push(r2 * this.gridSize + (c2 + 1));
-      
-      if (possibleMoves.length > 0) {const targetIndex = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+        if (this.moves === 0 && !this.autoPlaying) this.startTimer();this.gameMatrix[this.emptyIndex] = this.gameMatrix[index];
+this.gameMatrix[index] = 0;
+this.emptyIndex = index;
+this.moves++;
+this.triggerVibe('short');
+this.checkWin();
+}
+},
+checkWin() {
+let totalCells = this.gridSize * this.gridSize;
+for (let i = 0; i < totalCells - 1; i++) {
+if (this.gameMatrix[i] !== i + 1) return;
+}
+this.isWon = true;
+this.stopTimer();
+this.stopAutoRun();
+this.triggerVibe('long');
+},
+toggleAutoRun() {
+if (this.autoPlaying) {
+this.stopAutoRun();
+} else {
+this.autoPlaying = true;
+this.startTimer();
+this.autoTimerId = setInterval(() => {
+this.makeSingleHint();
+if (this.isWon) this.stopAutoRun();
+}, 450);
+}
+},
+stopAutoRun() {
+this.autoPlaying = false;
+if (this.autoTimerId) { clearInterval(this.autoTimerId); this.autoTimerId = null; }
+},
+makeSingleHint() {
+const possibleMoves = [];
+const r2 = Math.floor(this.emptyIndex / this.gridSize);
+const c2 = this.emptyIndex % this.gridSize;
+if (r2 > 0) possibleMoves.push((r2 - 1) * this.gridSize + c2);
+if (r2 < this.gridSize - 1) possibleMoves.push((r2 + 1) * this.gridSize + c2);
+if (c2 > 0) possibleMoves.push(r2 * this.gridSize + (c2 - 1));
+if (c2 < this.gridSize - 1) possibleMoves.push(r2 * this.gridSize + (c2 + 1));
+if (possibleMoves.length > 0) {
+const targetIndex = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
 this.moveTile(targetIndex);
 }
 },
@@ -248,3 +291,4 @@ toggleColor() { this.tileStyle = (this.tileStyle + 1) % this.tileColors.length; 
 toggleAnim() { this.isAnim = !this.isAnim; this.triggerVibe('short'); },
 toggleVib() { this.isVib = !this.isVib; this.triggerVibe('short'); }
 }
+        
