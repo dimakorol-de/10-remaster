@@ -118,7 +118,7 @@
       timerSeconds: 0,
       timerId: null,
       isDark: true,
-      tileStyle: 4, // По умолчанию включаем 5-й сочный изумрудный неон
+      tileStyle: 0, // ИСПРАВЛЕНО: Теперь жестко стартуем со Стиля 1
       isAnim: true,
       isVib: true,
       isWon: false,
@@ -126,11 +126,11 @@
       autoTimerId: null,
       showSettingsMenu: false,
       tileColors: [
-        { dark: '#1C1C1E', light: '#D1D1D6' },
-        { dark: '#007AFF', light: '#34C759' },
-        { dark: '#8A2BE2', light: '#FF007F' },
-        { dark: '#FF4500', light: '#FFA500' },
-        { dark: '#00FF66', light: '#00A344' }
+        { dark: '#1C1C1E', light: '#D1D1D6' }, // Стиль 1
+        { dark: '#007AFF', light: '#34C759' }, // Стиль 2
+        { dark: '#8A2BE2', light: '#FF007F' }, // Стиль 3
+        { dark: '#FF4500', light: '#FFA500' }, // Стиль 4
+        { dark: '#00FF66', light: '#00A344' }  // Стиль 5
       ],
       styleNames: ['Стиль 1', 'Стиль 2', 'Стиль 3', 'Стиль 4', 'Стиль 5']
     },
@@ -234,10 +234,10 @@
         if (this.gameMatrix[i] !== i + 1) return;
       }
       this.isWon = true;
-      this.stopTimer();
-      this.stopAutoRun();
-      this.triggerVibe('long');
-    },toggleAutoRun() {
+      this.stopTimer();this.stopAutoRun();
+this.triggerVibe('long');
+},
+toggleAutoRun() {
 if (this.autoPlaying) {
 this.stopAutoRun();
 } else {
